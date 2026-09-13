@@ -1,112 +1,141 @@
-[
-    {
-        "file":  "images/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
-        "title":  "036303ABAAAF993F32AC252300532DF3",
-        "category":  "大图集1",
-        "subcategory":  "角色1",
-        "description":  "",
-        "tags":  [
+{
+    "version":  2,
+    "groups":  [
+                   {
+                       "name":  "全部",
+                       "cover":  "images/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
+                       "collectionCount":  2,
+                       "imageCount":  11,
+                       "collections":  [
+                                           {
+                                               "name":  "大图集1",
+                                               "path":  "全部/大图集1",
+                                               "cover":  "images/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
+                                               "imageCount":  6,
+                                               "roles":  [
+                                                             {
+                                                                 "name":  "角色1",
+                                                                 "imageCount":  3,
+                                                                 "images":  [
+                                                                                {
+                                                                                    "file":  "images/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
+                                                                                    "title":  "036303ABAAAF993F32AC252300532DF3",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集1/角色1/屏幕截图 2026-08-19 073559.png",
-        "title":  "屏幕截图 2026-08-19 073559",
-        "category":  "大图集1",
-        "subcategory":  "角色1",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集1/角色1/屏幕截图 2026-08-19 073559.png",
+                                                                                    "title":  "屏幕截图 2026-08-19 073559",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集1/角色1/屏幕截图 2026-08-21 084059.png",
-        "title":  "屏幕截图 2026-08-21 084059",
-        "category":  "大图集1",
-        "subcategory":  "角色1",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集1/角色1/屏幕截图 2026-08-21 084059.png",
+                                                                                    "title":  "屏幕截图 2026-08-21 084059",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集1/角色2/屏幕截图 2026-08-21 090522.png",
-        "title":  "屏幕截图 2026-08-21 090522",
-        "category":  "大图集1",
-        "subcategory":  "角色2",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                }
+                                                                            ]
+                                                             },
+                                                             {
+                                                                 "name":  "角色2",
+                                                                 "imageCount":  3,
+                                                                 "images":  [
+                                                                                {
+                                                                                    "file":  "images/全部/大图集1/角色2/屏幕截图 2026-08-21 090522.png",
+                                                                                    "title":  "屏幕截图 2026-08-21 090522",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集1/角色2/屏幕截图 2026-08-23 081201.png",
-        "title":  "屏幕截图 2026-08-23 081201",
-        "category":  "大图集1",
-        "subcategory":  "角色2",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集1/角色2/屏幕截图 2026-08-23 081201.png",
+                                                                                    "title":  "屏幕截图 2026-08-23 081201",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集1/角色2/屏幕截图(37).png",
-        "title":  "屏幕截图(37)",
-        "category":  "大图集1",
-        "subcategory":  "角色2",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集1/角色2/屏幕截图(37).png",
+                                                                                    "title":  "屏幕截图(37)",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集2/角色1/屏幕截图(39).png",
-        "title":  "屏幕截图(39)",
-        "category":  "大图集2",
-        "subcategory":  "角色1",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                }
+                                                                            ]
+                                                             }
+                                                         ]
+                                           },
+                                           {
+                                               "name":  "大图集2",
+                                               "path":  "全部/大图集2",
+                                               "cover":  "images/全部/大图集2/角色1/屏幕截图(39).png",
+                                               "imageCount":  5,
+                                               "roles":  [
+                                                             {
+                                                                 "name":  "角色1",
+                                                                 "imageCount":  3,
+                                                                 "images":  [
+                                                                                {
+                                                                                    "file":  "images/全部/大图集2/角色1/屏幕截图(39).png",
+                                                                                    "title":  "屏幕截图(39)",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集2/角色1/屏幕截图(41).png",
-        "title":  "屏幕截图(41)",
-        "category":  "大图集2",
-        "subcategory":  "角色1",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集2/角色1/屏幕截图(41).png",
+                                                                                    "title":  "屏幕截图(41)",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集2/角色1/屏幕截图(47).png",
-        "title":  "屏幕截图(47)",
-        "category":  "大图集2",
-        "subcategory":  "角色1",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集2/角色1/屏幕截图(47).png",
+                                                                                    "title":  "屏幕截图(47)",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集2/角色2/屏幕截图(48).png",
-        "title":  "屏幕截图(48)",
-        "category":  "大图集2",
-        "subcategory":  "角色2",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                }
+                                                                            ]
+                                                             },
+                                                             {
+                                                                 "name":  "角色2",
+                                                                 "imageCount":  2,
+                                                                 "images":  [
+                                                                                {
+                                                                                    "file":  "images/全部/大图集2/角色2/屏幕截图(48).png",
+                                                                                    "title":  "屏幕截图(48)",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    },
-    {
-        "file":  "images/大图集2/角色2/屏幕截图(54).png",
-        "title":  "屏幕截图(54)",
-        "category":  "大图集2",
-        "subcategory":  "角色2",
-        "description":  "",
-        "tags":  [
+                                                                                             ]
+                                                                                },
+                                                                                {
+                                                                                    "file":  "images/全部/大图集2/角色2/屏幕截图(54).png",
+                                                                                    "title":  "屏幕截图(54)",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
 
-                 ]
-    }
-]
+                                                                                             ]
+                                                                                }
+                                                                            ]
+                                                             }
+                                                         ]
+                                           }
+                                       ]
+                   }
+               ]
+}

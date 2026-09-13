@@ -22,7 +22,7 @@
 
         <div class="header-inner">
 
-            <a href="index.html" class="logo">
+            <a href="#" id="homeLink" class="logo">
                 My Image Library
             </a>
 
@@ -39,108 +39,137 @@
     </header>
 
 
-    <!-- 主内容 -->
     <main class="container">
 
-        <!-- 标题 -->
-        <section class="hero">
-
-            <h1>我的图片库</h1>
-
-            <p>
-                一个简单的个人图片素材托管网站
-            </p>
-
-        </section>
+        <!-- 面包屑：大类 / 图集 -->
+        <nav id="breadcrumb"
+             class="breadcrumb"
+             aria-label="位置导航">
+        </nav>
 
 
-        <!-- 搜索 -->
-        <section class="search-section">
+        <!-- 视图 1：大类列表（只有一个大类时会自动进入，不显示这一层） -->
+        <section id="groupsView"
+                 class="view"
+                 style="display:none;">
 
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="搜索图片名称、标签..."
-                autocomplete="off"
-            >
+            <div id="groupsGrid"
+                 class="cover-grid">
+            </div>
 
         </section>
 
 
-        <!-- 一级分类：大图集（内容由 script.js 依据 images.json 自动生成） -->
+        <!-- 视图 2：某个大类下的图集封面列表 -->
+        <section id="collectionsView"
+                 class="view"
+                 style="display:none;">
+
+            <div id="collectionsGrid"
+                 class="cover-grid">
+            </div>
+
+        </section>
+
+
+        <!-- 视图 3：图集内部（角色页签 + 图片） -->
+        <section id="imagesView"
+                 class="view"
+                 style="display:none;">
+
+            <!-- 角色页签：只有图集里真实存在的角色，没有「全部」 -->
+            <section id="roleSection"
+                     class="role-section">
+            </section>
+
+
+            <section class="search-section">
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="在本图集内搜索标题、标签..."
+                    autocomplete="off"
+                >
+
+            </section>
+
+
+            <div class="result-info">
+
+                <span id="resultCount">
+                </span>
+
+            </div>
+
+
+            <section
+                id="gallery"
+                class="gallery">
+            </section>
+
+
+            <section
+                id="imagesEmpty"
+                class="empty-message"
+                style="display:none;">
+
+                <div class="empty-icon">
+                    🔍
+                </div>
+
+                <h2 id="imagesEmptyTitle">
+                    没有找到图片
+                </h2>
+
+                <p id="imagesEmptyText">
+                    尝试搜索其他关键词
+                </p>
+
+            </section>
+
+
+            <section
+                id="pagination"
+                class="pagination"
+                style="display:none;">
+
+                <button
+                    id="prevBtn"
+                    class="page-btn">
+                    ← 上一页
+                </button>
+
+                <span id="pageInfo">
+                    第 1 页
+                </span>
+
+                <button
+                    id="nextBtn"
+                    class="page-btn">
+                    下一页 →
+                </button>
+
+            </section>
+
+        </section>
+
+
+        <!-- 全局状态：图库为空 / 清单加载失败 -->
         <section
-            id="categorySection"
-            class="category-section">
-        </section>
-
-
-        <!-- 二级分类：角色 / 小类别，选中某个大图集后才出现 -->
-        <section
-            id="subcategorySection"
-            class="category-section subcategory-section"
-            style="display:none;">
-        </section>
-
-
-        <!-- 图片数量 -->
-        <div class="result-info">
-
-            <span id="resultCount">
-                正在加载...
-            </span>
-
-        </div>
-
-
-        <!-- 图片区域 -->
-        <section
-            id="gallery"
-            class="gallery">
-        </section>
-
-
-        <!-- 没有搜索结果 / 图库为空 -->
-        <section
-            id="emptyMessage"
+            id="statusMessage"
             class="empty-message"
             style="display:none;">
 
-            <div class="empty-icon">
-                🔍
+            <div id="statusIcon" class="empty-icon">
+                🖼️
             </div>
 
-            <h2 id="emptyTitle">
-                没有找到图片
+            <h2 id="statusTitle">
             </h2>
 
-            <p id="emptyText">
-                尝试搜索其他关键词
+            <p id="statusText">
             </p>
-
-        </section>
-
-
-        <!-- 分页 -->
-        <section
-            id="pagination"
-            class="pagination"
-            style="display:none;">
-
-            <button
-                id="prevBtn"
-                class="page-btn">
-                ← 上一页
-            </button>
-
-            <span id="pageInfo">
-                第 1 页
-            </span>
-
-            <button
-                id="nextBtn"
-                class="page-btn">
-                下一页 →
-            </button>
 
         </section>
 

@@ -7,24 +7,44 @@
         powershell -File tools\generate-manifest.ps1
       或双击 tools\update-gallery.cmd
 
-    目录结构 = 分类结构，两级：
-        images/大图集1/角色1/001.jpg
-                └─ 一级 ─┘└ 二级 ┘
-      · 一级文件夹（category）  = 大图集，显示为第一行分类按钮
-      · 二级文件夹（subcategory）= 角色 / 小类别，选中大图集后显示为第二行筛选
-      · images/001.jpg                  -> 一级 "未分类"，无二级
-      · images/大图集1/001.jpg          -> 一级 "大图集1"，无二级
-      · images/大图集1/角色1/服装/1.jpg -> 一级 "大图集1"，二级 "角色1/服装"（三级以上合并成二级）
+    ------------------------------------------------------------
+    目录层级 = 网站层级，共三级：
+
+        images/全部/大图集1/角色1/001.jpg
+               └大类┘└大图集┘└角色┘
+
+      第 1 层  images/<大类>/            例如「全部」。以后想加新大类，
+                                        直接建 images/<新大类>/ 即可
+      第 2 层  <大类>/<大图集>/          网站的图集列表，每个图集一张封面
+      第 3 层  <大图集>/<角色>/          图集内的分类（没有「全部」这一档）
+
+    规则：
+      · 图片直接放在大图集文件夹下（没有角色子文件夹）-> 归入「草稿箱」，
+        用来放还没分类的图
+      · 第 4 层及更深会合并进角色名，例如 角色1/服装 -> 角色 "角色1/服装"
+      · 放在 images/ 根目录的图片 -> 大类「未分类」/ 大图集「未分类」
       · 文件名去掉扩展名后作为标题
-      · 若存在 images/meta.json，其中的 title / description / tags /
-        category / subcategory 会覆盖自动生成的值。格式示例：
-          {
-            "大图集1/角色1/001.jpg": {
-              "title": "雷电将军",
-              "description": "官方立绘",
-              "tags": ["原神", "参考"]
-            }
+
+    图集封面的确定顺序（先找到先用）：
+      1) 大图集文件夹里的 cover.jpg / cover.png / _cover.* / 封面.*
+         想换封面，直接替换这个文件即可（它不会被当成图片显示）
+      2) images/meta.json 里该大图集的 "cover" 字段
+      3) 该大图集里的第一张图
+
+    images/meta.json（可选，不存在就跳过）：
+      {
+        "collections": {
+          "全部/大图集1": { "name": "显示名", "cover": "角色1/001.jpg" }
+        },
+        "images": {
+          "全部/大图集1/角色1/001.jpg": {
+            "title": "雷电将军",
+            "description": "官方立绘",
+            "tags": ["原神", "参考"]
           }
+        }
+      }
+      也兼容旧格式：顶层直接就是「图片路径 -> 属性」的映射。
 #>
 
 [CmdletBinding()]
@@ -38,7 +58,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# 以脚本所在位置推导仓库根目录，保证在任何工作目录下都能正确运行
 $root = Split-Path -Parent $PSScriptRoot
 $imagesPath = Join-Path $root $ImagesDir
 $outputPath = Join-Path $root $OutputFile
@@ -49,31 +68,10 @@ if (-not (Test-Path -LiteralPath $imagesPath)) {
 }
 
 $extensions = @('.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg')
+$coverNames = @('cover', '_cover', '封面')
+$DRAFT = '草稿箱'
+$UNCLASSIFIED = '未分类'
 
-# 读取可选的 meta.json（标题等人工信息）
-$metaPath = Join-Path $imagesPath 'meta.json'
-$meta = @{}
-if (Test-Path -LiteralPath $metaPath) {
-    try {
-        $metaJson = Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        foreach ($prop in $metaJson.PSObject.Properties) {
-            # 允许写成 "yuanshen/001.jpg" 或 "images/yuanshen/001.jpg"
-            $key = $prop.Name -replace '\\', '/' -replace '^\.?/?images/', ''
-            $meta[$key] = $prop.Value
-        }
-        Write-Host "已读取 meta.json（$($meta.Count) 条覆盖信息）" -ForegroundColor Cyan
-    }
-    catch {
-        Write-Host "meta.json 解析失败，已忽略：$($_.Exception.Message)" -ForegroundColor Yellow
-    }
-}
-
-$files = Get-ChildItem -LiteralPath $imagesPath -Recurse -File |
-    Where-Object { $extensions -contains $_.Extension.ToLower() } |
-    Where-Object { $_.Name -notlike '.*' } |
-    Sort-Object FullName
-
-# 标签既支持 JSON 数组，也支持 "a, b, c" 这样的字符串，统一成字符串数组
 function ConvertTo-TagArray($value) {
     if ($null -eq $value) { return @() }
     $raw = @()
@@ -83,63 +81,224 @@ function ConvertTo-TagArray($value) {
     return @($raw | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }
 
-$entries = New-Object System.Collections.Generic.List[object]
+# ---------- 读取 meta.json ----------
+
+$metaCollections = @{}
+$metaImages = @{}
+
+$metaPath = Join-Path $imagesPath 'meta.json'
+if (Test-Path -LiteralPath $metaPath) {
+    try {
+        $raw = Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $propNames = @($raw.PSObject.Properties.Name)
+
+        if (($propNames -contains 'collections') -or ($propNames -contains 'images')) {
+            if ($raw.collections) {
+                foreach ($p in $raw.collections.PSObject.Properties) {
+                    $metaCollections[($p.Name -replace '\\', '/').Trim('/')] = $p.Value
+                }
+            }
+            if ($raw.images) {
+                foreach ($p in $raw.images.PSObject.Properties) {
+                    $metaImages[($p.Name -replace '\\', '/').Replace('images/', '').Trim('/')] = $p.Value
+                }
+            }
+        }
+        else {
+            # 旧格式：顶层直接是「图片路径 -> 属性」
+            foreach ($p in $raw.PSObject.Properties) {
+                $metaImages[($p.Name -replace '\\', '/').Replace('images/', '').Trim('/')] = $p.Value
+            }
+        }
+
+        Write-Host "已读取 meta.json（图集 $($metaCollections.Count) 条 / 图片 $($metaImages.Count) 条）" -ForegroundColor Cyan
+    }
+    catch {
+        Write-Host "meta.json 解析失败，已忽略：$($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+# ---------- 扫描文件，建三级树 ----------
+
+$files = Get-ChildItem -LiteralPath $imagesPath -Recurse -File |
+    Where-Object { $extensions -contains $_.Extension.ToLower() } |
+    Where-Object { $_.Name -notlike '.*' } |
+    Where-Object { $coverNames -notcontains [System.IO.Path]::GetFileNameWithoutExtension($_.Name).ToLower() } |
+    Sort-Object FullName
+
+$tree = [ordered]@{}
+$coverFiles = @{}
+$count = 0
 
 foreach ($file in $files) {
     $relFromImages = $file.FullName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
-    $relPath = "$ImagesDir/$relFromImages"
+    $segments = @($relFromImages -split '/' | Where-Object { $_ })
+    if ($segments.Count -lt 1) { continue }
 
-    # 分开一级（大图集）和二级（角色/小类别）
-    $dir = $file.DirectoryName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
-    $category = '未分类'
-    $subcategory = ''
-    if (-not [string]::IsNullOrWhiteSpace($dir)) {
-        $segments = @($dir -split '/' | Where-Object { $_ })
-        $category = $segments[0]
-        if ($segments.Count -gt 1) {
-            # 三级以上合并进二级，例如 角色1/服装
-            $subcategory = ($segments[1..($segments.Count - 1)]) -join '/'
-        }
+    $name = $segments[$segments.Count - 1]
+    $dirs = @()
+    if ($segments.Count -gt 1) {
+        $dirs = @($segments[0..($segments.Count - 2)])
     }
 
-    $title = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+    # 第 1 层 = 大类，第 2 层 = 大图集，第 3 层起 = 角色
+    $group = if ($dirs.Count -ge 1) { $dirs[0] } else { $UNCLASSIFIED }
+    $collection = if ($dirs.Count -ge 2) { $dirs[1] } else { $UNCLASSIFIED }
+    $role = if ($dirs.Count -ge 3) { ($dirs[2..($dirs.Count - 1)]) -join '/' } else { $DRAFT }
+
+    $relPath = "$ImagesDir/$relFromImages"
+    $title = [System.IO.Path]::GetFileNameWithoutExtension($name)
     $description = ''
     $tags = @()
 
-    if ($meta.ContainsKey($relFromImages)) {
-        $m = $meta[$relFromImages]
+    if ($metaImages.ContainsKey($relFromImages)) {
+        $m = $metaImages[$relFromImages]
         if ($m.title) { $title = [string]$m.title }
         if ($m.description) { $description = [string]$m.description }
-        if ($m.category) { $category = [string]$m.category }
-        if ($m.subcategory) { $subcategory = [string]$m.subcategory }
         if ($m.tags) { $tags = ConvertTo-TagArray $m.tags }
     }
 
-    # 用 PSCustomObject 而不是裸的 [ordered]@{}：
-    # OrderedDictionary 的键不是属性，Group-Object category 会得到空名字。
-    $entries.Add([pscustomobject][ordered]@{
+    if (-not $tree.Contains($group)) { $tree[$group] = [ordered]@{} }
+    if (-not $tree[$group].Contains($collection)) { $tree[$group][$collection] = [ordered]@{} }
+    if (-not $tree[$group][$collection].Contains($role)) {
+        $tree[$group][$collection][$role] = New-Object System.Collections.Generic.List[object]
+    }
+
+    $tree[$group][$collection][$role].Add([pscustomobject][ordered]@{
         file        = $relPath
         title       = $title
-        category    = $category
-        subcategory = $subcategory
         description = $description
         tags        = $tags
     }) | Out-Null
+
+    $count++
 }
 
-if ($entries.Count -eq 0) {
+# ---------- 找封面文件（cover.jpg / _cover.png / 封面.webp）----------
+
+foreach ($group in @($tree.Keys)) {
+    foreach ($collection in @($tree[$group].Keys)) {
+        $dir = Join-Path $imagesPath (Join-Path $group $collection)
+        if (-not (Test-Path -LiteralPath $dir)) { continue }
+
+        $found = Get-ChildItem -LiteralPath $dir -File |
+            Where-Object { $extensions -contains $_.Extension.ToLower() } |
+            Where-Object { $coverNames -contains [System.IO.Path]::GetFileNameWithoutExtension($_.Name).ToLower() } |
+            Select-Object -First 1
+
+        if ($found) {
+            $rel = $found.FullName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
+            $coverFiles["$group/$collection"] = "$ImagesDir/$rel"
+        }
+    }
+}
+
+# ---------- 组装 JSON 结构 ----------
+
+$groupsOut = New-Object System.Collections.Generic.List[object]
+$totalImages = 0
+
+foreach ($group in @($tree.Keys | Sort-Object)) {
+    $collectionsOut = New-Object System.Collections.Generic.List[object]
+    $groupImages = 0
+    $groupCover = ''
+
+    foreach ($collection in @($tree[$group].Keys | Sort-Object)) {
+        $rolesOut = New-Object System.Collections.Generic.List[object]
+        $collectionImages = 0
+        $firstImage = ''
+        $firstDraftImage = ''
+
+        # 角色排序：普通角色按名称，草稿箱永远排最后
+        $sorted = @($tree[$group][$collection].Keys | Sort-Object)
+        $roleNames = @($sorted | Where-Object { $_ -ne $DRAFT })
+        if ($sorted -contains $DRAFT) { $roleNames += $DRAFT }
+
+        foreach ($role in $roleNames) {
+            $list = $tree[$group][$collection][$role]
+            if ($list.Count -eq 0) { continue }
+
+            # 回退封面优先用正式角色的第一张，草稿箱只作为兜底
+            if ($role -eq $DRAFT) {
+                if (-not $firstDraftImage) { $firstDraftImage = $list[0].file }
+            }
+            else {
+                if (-not $firstImage) { $firstImage = $list[0].file }
+            }
+
+            $rolesOut.Add([pscustomobject][ordered]@{
+                name       = $role
+                imageCount = $list.Count
+                images     = $list.ToArray()
+            }) | Out-Null
+
+            $collectionImages += $list.Count
+        }
+
+        if ($collectionImages -eq 0) { continue }
+
+        $key = "$group/$collection"
+        $cover = ''
+        if ($coverFiles.ContainsKey($key)) {
+            $cover = $coverFiles[$key]
+        }
+        elseif ($metaCollections.ContainsKey($key) -and $metaCollections[$key].cover) {
+            $c = ([string]$metaCollections[$key].cover) -replace '\\', '/'
+            if ($c -match '^images/') {
+                $cover = $c
+            }
+            else {
+                $cover = "$ImagesDir/$group/$collection/$($c.TrimStart('/'))"
+            }
+        }
+        else {
+            if ($firstImage) { $cover = $firstImage } else { $cover = $firstDraftImage }
+        }
+
+        $displayName = $collection
+        if ($metaCollections.ContainsKey($key) -and $metaCollections[$key].name) {
+            $displayName = [string]$metaCollections[$key].name
+        }
+
+        $collectionsOut.Add([pscustomobject][ordered]@{
+            name       = $displayName
+            path       = $key
+            cover      = $cover
+            imageCount = $collectionImages
+            roles      = $rolesOut.ToArray()
+        }) | Out-Null
+
+        $groupImages += $collectionImages
+        if (-not $groupCover) { $groupCover = $cover }
+    }
+
+    if ($collectionsOut.Count -eq 0) { continue }
+
+    $groupsOut.Add([pscustomobject][ordered]@{
+        name            = $group
+        cover           = $groupCover
+        collectionCount = $collectionsOut.Count
+        imageCount      = $groupImages
+        collections     = $collectionsOut.ToArray()
+    }) | Out-Null
+
+    $totalImages += $groupImages
+}
+
+if ($groupsOut.Count -eq 0) {
     $json = '[]'
 }
 else {
-    # 注意：必须用 .ToArray() 转成普通数组。
-    # Windows PowerShell 5.1 的 ConvertTo-Json 无法序列化
-    # System.Collections.Generic.List[object]（会报 "Argument types do not match"），
-    # 而且 @($list) 并不会把它展开成数组。
-    $json = ConvertTo-Json -InputObject $entries.ToArray() -Depth 5
+    $payload = [pscustomobject][ordered]@{
+        version = 2
+        groups  = $groupsOut.ToArray()
+    }
 
-    # Windows PowerShell 5.1 会把非 ASCII 字符输出成 \uXXXX 转义，
-    # 这里手工还原成原始字符，让 images.json 保持可读。
-    # （不用 [regex]::Replace 的脚本块重载：5.1 不支持把 ScriptBlock 转成 MatchEvaluator）
+    # PS 5.1 无法序列化 List[object]；结构嵌套很深，-Depth 必须给足
+    $json = ConvertTo-Json -InputObject $payload -Depth 20
+
+    # 5.1 会把非 ASCII 输出成 \uXXXX 转义，这里手工还原成可读字符
+    # （不用 [regex]::Replace 的脚本块重载：5.1 不支持 ScriptBlock -> MatchEvaluator）
     $sb = New-Object System.Text.StringBuilder
     $last = 0
     foreach ($m in [regex]::Matches($json, '\\u([0-9a-fA-F]{4})')) {
@@ -157,23 +316,20 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 Write-Host ""
 Write-Host "已生成清单：$outputPath" -ForegroundColor Green
-Write-Host "共 $($entries.Count) 张图片" -ForegroundColor Green
+Write-Host "共 $totalImages 张图片 / $($groupsOut.Count) 个大类" -ForegroundColor Green
 
-if ($entries.Count -gt 0) {
-    Write-Host "一级分类（大图集）：" -ForegroundColor DarkGray
-    $entries | Group-Object category |
-        Sort-Object Count -Descending |
-        ForEach-Object { Write-Host ("  {0,-24} {1} 张" -f $_.Name, $_.Count) }
-
+foreach ($g in $groupsOut) {
     Write-Host ""
-    Write-Host "二级分类（角色 / 小类别）：" -ForegroundColor DarkGray
-    $entries | Group-Object {
-            if ($_.subcategory) { "$($_.category) / $($_.subcategory)" }
-            else { "$($_.category) / （无二级）" }
-        } |
-        Sort-Object Name |
-        ForEach-Object { Write-Host ("  {0,-34} {1} 张" -f $_.Name, $_.Count) }
+    Write-Host ("  【{0}】{1} 个图集，{2} 张图" -f $g.name, $g.collectionCount, $g.imageCount) -ForegroundColor Cyan
+    foreach ($c in $g.collections) {
+        Write-Host ("    - {0}（{1} 张）封面: {2}" -f $c.name, $c.imageCount, (Split-Path $c.cover -Leaf))
+        foreach ($r in $c.roles) {
+            Write-Host ("        . {0}: {1} 张" -f $r.name, $r.imageCount)
+        }
+    }
+}
 
+if ($totalImages -gt 0) {
     Write-Host ""
-    Write-Host "提示：想改标题/加标签，编辑 images\meta.json 后重新运行本脚本。" -ForegroundColor DarkGray
+    Write-Host "提示：换图集封面 = 往该图集文件夹放一个 cover.jpg；改标题/标签 = 编辑 images\meta.json" -ForegroundColor DarkGray
 }

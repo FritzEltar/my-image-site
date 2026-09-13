@@ -13,8 +13,16 @@ html {
 body {
     margin: 0;
 
+    /* 与 git-scm.com 同款字体栈。
+       那个站没有加载任何 web font，正文就是这一串；本机装了 Georgia，
+       所以英文会和 git-scm.com 一样落在 Georgia 上（衬线体）。
+       这几个西文字体都没有中文字形，中文会自动回退到微软雅黑。 */
     font-family:
-        Arial,
+        Adelle,
+        "Roboto Slab",
+        "DejaVu Serif",
+        Georgia,
+        "Times New Roman",
         "Microsoft YaHei",
         sans-serif;
 
@@ -25,6 +33,22 @@ body {
     transition:
         background 0.3s,
         color 0.3s;
+}
+
+
+/* 表单控件默认不继承字体，这里统一成和正文一致 */
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
+}
+
+
+code {
+    font-family:
+        Courier,
+        monospace;
 }
 
 
@@ -336,23 +360,23 @@ body {
 
     align-items: center;
 
+    /* 页签整行水平居中 */
+    justify-content: center;
+
     flex-wrap: wrap;
 
-    gap: 8px;
+    gap: 10px;
 
-    margin-bottom: 20px;
+    margin-bottom: 22px;
 
-    padding-bottom: 14px;
+    padding-bottom: 16px;
 
     border-bottom: 1px solid #eee;
 }
 
-.role-label {
-    font-size: 13px;
-
-    color: #999;
-
-    margin-right: 4px;
+/* 搜索时不受角色筛选限制，页签整体淡化 */
+.role-section.searching .role-tab {
+    opacity: 0.45;
 }
 
 .role-tab {
@@ -362,13 +386,20 @@ body {
 
     color: #444;
 
-    padding: 7px 15px;
+    padding: 8px 18px;
 
     border-radius: 18px;
 
     cursor: pointer;
 
     font-size: 14px;
+
+    line-height: 1.4;
+
+    /* 长英文名不换行、不截断：页签跟着内容撑开 */
+    white-space: nowrap;
+
+    text-align: center;
 
     transition: 0.2s;
 }
@@ -773,6 +804,83 @@ body {
     font-size: 13px;
 }
 
+.footer p {
+    margin: 0 0 6px;
+}
+
+.footer p:last-child {
+    margin-bottom: 0;
+}
+
+
+/* =========================
+   页脚致谢标记
+========================= */
+
+.credit {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    margin-top: 18px !important;
+
+    padding-top: 16px;
+
+    border-top: 1px dashed #ddd;
+
+    font-size: 12px;
+
+    color: #aaa;
+
+    letter-spacing: 0.02em;
+}
+
+.credit-mark {
+    width: 26px;
+
+    height: 20px;
+
+    flex: none;
+
+    fill: #b9b3a8;
+
+    transition: fill 0.25s;
+}
+
+.credit:hover .credit-mark {
+    fill: #4d6bfe;
+}
+
+.credit a {
+    color: inherit;
+
+    text-decoration: underline;
+
+    text-underline-offset: 3px;
+
+    transition: color 0.2s;
+}
+
+.credit a:hover {
+    color: #4d6bfe;
+}
+
+body.dark .credit {
+    border-color: #333;
+}
+
+body.dark .credit-mark {
+    fill: #6b6558;
+}
+
+body.dark .credit a:hover {
+    color: #7b93ff;
+}
+
 
 /* =========================
    深色模式
@@ -857,10 +965,6 @@ body.dark .role-tab.active {
     background: #eee;
 
     color: #111;
-}
-
-body.dark .role-label {
-    color: #777;
 }
 
 body.dark .image-card {

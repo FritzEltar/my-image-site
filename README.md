@@ -99,6 +99,8 @@ thumbs/全部/大图集1/角色1/大图集截图.jpg      50 KB   ← 网格/封
 - 用的是 .NET 自带的 `System.Drawing`，**不需要安装任何东西**。
 - `webp` / `avif` / `svg` 这几种读不了，会自动跳过，这些图直接用原图显示。
 - 缩略图**必须一起提交**，否则线上看到的是原图。
+- **删图或给文件夹改名后，脚本会自动清理失效的旧缩略图**
+  （会打印一行「清理了 N 个已失效的旧缩略图」），不用手动去 `thumbs/` 里翻。
 
 效果（当前图库）：
 
@@ -106,7 +108,7 @@ thumbs/全部/大图集1/角色1/大图集截图.jpg      50 KB   ← 网格/封
 |---|---|---|
 | 图集列表页（2 张封面） | 12.08 MB | **0.15 MB**（80 倍） |
 | 图集内页 · 一个角色 3 张 | 7.13 MB | **0.18 MB**（40 倍） |
-| 整个图库缩略图合计 | — | 0.39 MB |
+| 整个图库缩略图合计 | — | 0.42 MB |
 
 想调整：
 
@@ -220,6 +222,48 @@ git push
 ```
 
 推送后等 1~2 分钟自动部署完成。
+
+---
+
+## 字体
+
+正文用的是 **git-scm.com 的同款字体栈**：
+
+```css
+font-family: Adelle, "Roboto Slab", "DejaVu Serif", Georgia,
+             "Times New Roman", "Microsoft YaHei", sans-serif;
+```
+
+git-scm.com 本身没有加载任何 web font，正文就是这个栈。本机没装
+Adelle / Roboto Slab / DejaVu Serif，所以英文落在 **Georgia** 上 ——
+和 git-scm.com 在你机器上的显示完全一致（实测两者渲染宽度都是 590.28px）。
+
+这几个西文字体都没有中文字形，所以**中文会自动回退到微软雅黑**，
+中英混排不会出现方框或宋体。
+
+想换字体就改 `style.css` 最上面 `body` 里的 `font-family`。
+
+---
+
+## 页脚致谢
+
+页脚最后一行是本站的搭建者标记 —— 一条鲸鱼（DeepSeek 的标志）
+加一句 `Built with DeepSeek`，鼠标悬停会变成 DeepSeek 的品牌蓝
+（`#4d6bfe`）。它是内联 SVG（`index.html` 里 `.credit` 那一段），
+不额外请求文件，深色 / 浅色模式下颜色都已适配。
+
+---
+
+## 目录里那个测试集
+
+`images/全部/大图集1/abcdefghijklmn/` 是**故意放的占位测试集**，
+用来验证角色页签能容纳多长的英文名（14 个字母，页签宽约 132px，
+不换行不截断）。不需要了可以删掉：
+
+```powershell
+Remove-Item 'images\全部\大图集1\abcdefghijklmn' -Recurse
+# 然后双击 tools\update-gallery.cmd
+```
 
 ---
 

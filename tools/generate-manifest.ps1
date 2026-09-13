@@ -187,6 +187,9 @@ function New-Thumbnail($sourcePath, $targetPath) {
 function Add-ThumbFor($relFromImages) {
     if (-not $thumbsAvailable) { return }
 
+    # 已经处理过就跳过：封面和图片会是同一张，避免重复计数
+    if ($thumbMap.ContainsKey($relFromImages)) { return }
+
     $ext = [System.IO.Path]::GetExtension($relFromImages).ToLower()
     if ($thumbableExtensions -notcontains $ext) { return }   # webp/avif/svg 跳过
 
@@ -450,6 +453,36 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
     $totalImages += $groupImages
 }
 
+# ---------- 清理孤儿缩略图 ----------
+# 图片被删除或改名后，thumbs/ 里会留下对不上号的旧文件。
+# 不清掉的话它们会一直跟着仓库走，越积越多。
+
+$orphansRemoved = 0
+
+if ($thumbsAvailable -and (Test-Path -LiteralPath $thumbRoot)) {
+    $expected = @{}
+    foreach ($key in $thumbMap.Keys) {
+        $full = Join-Path $root ($thumbMap[$key] -replace '/', '\')
+        $expected[$full] = $true
+    }
+
+    Get-ChildItem -LiteralPath $thumbRoot -Recurse -File | ForEach-Object {
+        if (-not $expected.ContainsKey($_.FullName)) {
+            Remove-Item -LiteralPath $_.FullName -Force
+            $orphansRemoved++
+        }
+    }
+
+    # 顺手删掉空目录
+    Get-ChildItem -LiteralPath $thumbRoot -Recurse -Directory |
+        Sort-Object { $_.FullName.Length } -Descending |
+        ForEach-Object {
+            if (-not (Get-ChildItem -LiteralPath $_.FullName -Recurse -File -ErrorAction SilentlyContinue)) {
+                Remove-Item -LiteralPath $_.FullName -Recurse -Force
+            }
+        }
+}
+
 if ($groupsOut.Count -eq 0) {
     $json = '[]'
 }
@@ -508,6 +541,9 @@ if ($thumbsAvailable) {
 
     Write-Host ""
     Write-Host "缩略图（$ThumbDir/）：$madeText，合计 $sizeText" -ForegroundColor Green
+    if ($orphansRemoved -gt 0) {
+        Write-Host "  清理了 $orphansRemoved 个已失效的旧缩略图（图片被删或改名留下的）" -ForegroundColor Green
+    }
     if ($thumbStats.failed -gt 0) {
         Write-Host "  有 $($thumbStats.failed) 张生成失败，这些图会直接用原图显示" -ForegroundColor Yellow
     }

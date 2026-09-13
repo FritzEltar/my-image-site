@@ -446,21 +446,19 @@
 
     function renderRoleTabs(collection, searching) {
         el.roleSection.innerHTML = '';
+        el.roleSection.classList.toggle('searching', searching);
 
         if (collection.roles.length === 0) {
             return;
         }
 
-        var label = document.createElement('span');
-        label.className = 'role-label';
-        label.textContent = searching ? '搜索中' : '角色';
-        el.roleSection.appendChild(label);
-
         collection.roles.forEach(function (role) {
             var btn = document.createElement('button');
             btn.className = 'role-tab' + (!searching && role.name === view.role ? ' active' : '');
             btn.dataset.role = role.name;
-            btn.textContent = role.name + ' (' + role.imageCount + ')';
+            // 页签上不显示张数，标题属性里保留，鼠标悬停才看得到
+            btn.textContent = role.name;
+            btn.title = role.name + '（' + role.imageCount + ' 张）';
             btn.addEventListener('click', function () {
                 navigate(view.group, view.collection, role.name);
             });

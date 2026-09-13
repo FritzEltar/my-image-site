@@ -12,7 +12,7 @@
 
     <title>My Image Library</title>
 
-    <link rel="stylesheet" href="style.css?v=d4b40e2f">
+    <link rel="stylesheet" href="style.css?v=e7c122d6">
 </head>
 
 <body>
@@ -195,6 +195,14 @@
                 alt=""
             >
 
+            <!-- 大图还在下载时的提示（此时先显示放大的缩略图） -->
+            <span
+                id="modalLoading"
+                class="modal-loading"
+                hidden>
+                载入大图…
+            </span>
+
             <div class="modal-info">
 
                 <h2 id="modalTitle">
@@ -259,7 +267,7 @@
         </p>
     </noscript>
 
-    <script src="script.js?v=d4b40e2f"></script>
+    <script src="script.js?v=e7c122d6"></script>
 
 </body>
 

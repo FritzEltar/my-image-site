@@ -706,6 +706,40 @@ code {
     margin: auto;
 
     border-radius: 8px;
+
+    transition: filter 0.25s;
+}
+
+/* 大图还在下载时，先显示放大的缩略图并轻微模糊，
+   让人一眼看出"还在加载"，而不是盯着白框干等 */
+#modalImage.is-preview {
+    filter: blur(3px);
+}
+
+.modal-loading {
+    position: absolute;
+
+    left: 50%;
+
+    top: 18px;
+
+    transform: translateX(-50%);
+
+    z-index: 6;
+
+    background: rgba(0, 0, 0, 0.62);
+
+    color: white;
+
+    font-size: 12px;
+
+    padding: 5px 13px;
+
+    border-radius: 20px;
+
+    white-space: nowrap;
+
+    pointer-events: none;
 }
 
 .close-btn {

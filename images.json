@@ -22,6 +22,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/abcdefghijklmn/placeholder-1.png",
                                                                                     "thumb":  "thumbs/全部/大图集1/abcdefghijklmn/placeholder-1.jpg",
+                                                                                    "view":  "",
                                                                                     "title":  "placeholder-1",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -31,6 +32,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/abcdefghijklmn/placeholder-2.png",
                                                                                     "thumb":  "thumbs/全部/大图集1/abcdefghijklmn/placeholder-2.jpg",
+                                                                                    "view":  "",
                                                                                     "title":  "placeholder-2",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -46,6 +48,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
                                                                                     "thumb":  "thumbs/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
+                                                                                    "view":  "views/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
                                                                                     "title":  "036303ABAAAF993F32AC252300532DF3",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -55,6 +58,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/character1/屏幕截图 2026-08-19 073559.png",
                                                                                     "thumb":  "thumbs/全部/大图集1/character1/屏幕截图 2026-08-19 073559.jpg",
+                                                                                    "view":  "",
                                                                                     "title":  "屏幕截图 2026-08-19 073559",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -64,6 +68,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/character1/屏幕截图 2026-08-21 084059.png",
                                                                                     "thumb":  "thumbs/全部/大图集1/character1/屏幕截图 2026-08-21 084059.jpg",
+                                                                                    "view":  "views/全部/大图集1/character1/屏幕截图 2026-08-21 084059.jpg",
                                                                                     "title":  "屏幕截图 2026-08-21 084059",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -79,6 +84,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/character2/屏幕截图 2026-08-21 090522.png",
                                                                                     "thumb":  "thumbs/全部/大图集1/character2/屏幕截图 2026-08-21 090522.jpg",
+                                                                                    "view":  "views/全部/大图集1/character2/屏幕截图 2026-08-21 090522.jpg",
                                                                                     "title":  "屏幕截图 2026-08-21 090522",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -88,6 +94,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/character2/屏幕截图 2026-08-23 081201.png",
                                                                                     "thumb":  "thumbs/全部/大图集1/character2/屏幕截图 2026-08-23 081201.jpg",
+                                                                                    "view":  "views/全部/大图集1/character2/屏幕截图 2026-08-23 081201.jpg",
                                                                                     "title":  "屏幕截图 2026-08-23 081201",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -97,6 +104,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/character2/屏幕截图(37).png",
                                                                                     "thumb":  "thumbs/全部/大图集1/character2/屏幕截图(37).jpg",
+                                                                                    "view":  "views/全部/大图集1/character2/屏幕截图(37).jpg",
                                                                                     "title":  "屏幕截图(37)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -121,6 +129,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/character1/屏幕截图(39).png",
                                                                                     "thumb":  "thumbs/全部/大图集2/character1/屏幕截图(39).jpg",
+                                                                                    "view":  "views/全部/大图集2/character1/屏幕截图(39).jpg",
                                                                                     "title":  "屏幕截图(39)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -130,6 +139,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/character1/屏幕截图(41).png",
                                                                                     "thumb":  "thumbs/全部/大图集2/character1/屏幕截图(41).jpg",
+                                                                                    "view":  "views/全部/大图集2/character1/屏幕截图(41).jpg",
                                                                                     "title":  "屏幕截图(41)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -139,6 +149,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/character1/屏幕截图(47).png",
                                                                                     "thumb":  "thumbs/全部/大图集2/character1/屏幕截图(47).jpg",
+                                                                                    "view":  "views/全部/大图集2/character1/屏幕截图(47).jpg",
                                                                                     "title":  "屏幕截图(47)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -154,6 +165,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/character2/屏幕截图(48).png",
                                                                                     "thumb":  "thumbs/全部/大图集2/character2/屏幕截图(48).jpg",
+                                                                                    "view":  "views/全部/大图集2/character2/屏幕截图(48).jpg",
                                                                                     "title":  "屏幕截图(48)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -163,6 +175,7 @@
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/character2/屏幕截图(54).png",
                                                                                     "thumb":  "thumbs/全部/大图集2/character2/屏幕截图(54).jpg",
+                                                                                    "view":  "views/全部/大图集2/character2/屏幕截图(54).jpg",
                                                                                     "title":  "屏幕截图(54)",
                                                                                     "description":  "",
                                                                                     "tags":  [

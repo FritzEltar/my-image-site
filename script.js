@@ -81,6 +81,7 @@
         darkModeBtn: document.getElementById('darkModeBtn'),
         modal: document.getElementById('imageModal'),
         modalImage: document.getElementById('modalImage'),
+        modalLoading: document.getElementById('modalLoading'),
         modalTitle: document.getElementById('modalTitle'),
         modalDescription: document.getElementById('modalDescription'),
         closeModal: document.getElementById('closeModal'),
@@ -533,6 +534,18 @@
 
         function open() { openModal(index); }
         card.addEventListener('click', open);
+
+        // 悬停 120ms 后才预取，避免鼠标扫过时白白下载一堆图
+        var hoverTimer = null;
+        card.addEventListener('mouseenter', function () {
+            clearTimeout(hoverTimer);
+            hoverTimer = setTimeout(function () { prefetch(img); }, 120);
+        });
+        card.addEventListener('mouseleave', function () {
+            clearTimeout(hoverTimer);
+        });
+        card.addEventListener('focus', function () { prefetch(img); });
+
         card.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -635,6 +648,48 @@
 
     /* ---------------- 灯箱 ---------------- */
 
+    var modalToken = 0;        // 防止快速翻图时旧的大图把新的覆盖掉
+    var prefetched = {};       // 已经预取过的 URL
+
+    function showModalLoading(visible) {
+        if (el.modalLoading) {
+            el.modalLoading.hidden = !visible;
+        }
+    }
+
+    // 灯箱优先用 views/（1600px，约 150KB），没有再退回原图
+    function fullSrcOf(img) {
+        return img.view || img.file;
+    }
+
+    // 悬停 / 聚焦时先把大图拉下来，点开就基本是秒出
+    function prefetch(img) {
+        var url = fullSrcOf(img);
+        if (!url || prefetched[url]) { return; }
+        prefetched[url] = true;
+        var pre = new Image();
+        pre.src = url;
+    }
+
+    function loadFullImage(target, url) {
+        var token = ++modalToken;
+        var loader = new Image();
+
+        loader.onload = function () {
+            if (token !== modalToken) { return; }   // 已经切到别的图了
+            target.src = url;
+            target.classList.remove('is-preview');
+            showModalLoading(false);
+        };
+        loader.onerror = function () {
+            if (token !== modalToken) { return; }
+            // 大图失败就保留缩略图，至少不是空白
+            target.classList.remove('is-preview');
+            showModalLoading(false);
+        };
+        loader.src = url;
+    }
+
     function openModal(index) {
         var entry = shownImages[index];
         if (!entry) { return; }
@@ -642,9 +697,24 @@
         var img = entry.img;
         modalIndex = index;
 
-        el.modalImage.src = img.file;
+        var full = fullSrcOf(img);
+        var preview = img.thumb || img.file;
+
         el.modalImage.alt = img.title;
         el.modalTitle.textContent = img.title;
+
+        // 先秒显缩略图（轻微模糊）+ 提示，大图下载完再无缝换上
+        if (full === preview) {
+            modalToken++;
+            el.modalImage.classList.remove('is-preview');
+            el.modalImage.src = preview;
+            showModalLoading(false);
+        } else {
+            el.modalImage.classList.add('is-preview');
+            el.modalImage.src = preview;
+            showModalLoading(true);
+            loadFullImage(el.modalImage, full);
+        }
 
         var parts = [];
         if (img.description) { parts.push(img.description); }
@@ -662,9 +732,12 @@
     }
 
     function closeModal() {
+        modalToken++;                     // 取消还在路上的大图
         el.modal.classList.remove('show');
         document.body.style.overflow = '';
         el.modalImage.src = '';
+        el.modalImage.classList.remove('is-preview');
+        showModalLoading(false);
         modalIndex = -1;
     }
 

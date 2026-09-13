@@ -47,21 +47,31 @@
       也兼容旧格式：顶层直接就是「图片路径 -> 属性」的映射。
 
     ------------------------------------------------------------
-    缩略图：
-      脚本会顺手给每张图生成一张小图，放在 thumbs/ 下（目录结构与
-      images/ 保持一致，统一转成 .jpg）。网站网格和封面卡用缩略图，
-      点开灯箱和下载仍然是原图。
+    派生图（两档）：
+      脚本会顺手给每张图生成两张小图，目录结构与 images/ 保持一致，
+      统一转成 .jpg。原图不再被页面自动加载，只用于「下载」和
+      「复制图片 URL」。
+
+        thumbs/  网格卡片和封面卡用，最长边 600px（约 20~50KB）
+        views/   灯箱查看用，最长边 1600px（约 100~300KB）
+
+      灯箱最多显示约 1000px 宽，以前直接拉原图等于下 4096px / 6.6MB
+      只为显示 1000px，浪费 130 倍流量。现在换成 views/。
 
       用的是 .NET 自带的 System.Drawing，不需要安装任何东西。
-      缩略图比原图新时会自动跳过，所以重复运行很快。
+      派生图比原图新时会自动跳过，所以重复运行很快。
+      删图或改名后留下的旧派生图也会自动清理。
 
       可调参数：
-        -NoThumbs            只更新清单，不生成缩略图
+        -NoThumbs            只更新清单，不生成派生图
         -ThumbWidth 600      缩略图最大宽度（默认 600）
         -ThumbQuality 82     缩略图 JPEG 质量（默认 82）
+        -ViewWidth 1600      查看图最大边长（默认 1600）
+        -ViewQuality 85      查看图 JPEG 质量（默认 85）
 
-      注意：webp / avif / svg 这几种 System.Drawing 读不了，会自动
-      跳过，这些图在网格里直接用原图（清单里 thumb 字段为空）。
+      两种情况会自动跳过，清单里对应字段留空、页面直接用原图：
+        · webp / avif / svg —— System.Drawing 读不了
+        · 原图本来就比派生图小（小 PNG 常见）—— 没必要为了"优化"变大
 
     ------------------------------------------------------------
     资源版本号：
@@ -94,7 +104,16 @@ param(
     # 缩略图 JPEG 质量（1-100）
     [int]$ThumbQuality = 82,
 
-    # 只更新清单，不生成缩略图
+    # 查看尺寸的输出目录（灯箱用，介于缩略图和原图之间）
+    [string]$ViewDir = 'views',
+
+    # 查看尺寸的最大边长。灯箱最多显示约 1000px 宽，1600 留了 1.6 倍余量
+    [int]$ViewWidth = 1600,
+
+    # 查看尺寸 JPEG 质量（1-100）
+    [int]$ViewQuality = 85,
+
+    # 只更新清单，不生成缩略图和查看尺寸
     [switch]$NoThumbs
 )
 
@@ -104,6 +123,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $imagesPath = Join-Path $root $ImagesDir
 $outputPath = Join-Path $root $OutputFile
 $thumbRoot = Join-Path $root $ThumbDir
+$viewRoot = Join-Path $root $ViewDir
 
 if (-not (Test-Path -LiteralPath $imagesPath)) {
     Write-Host "找不到图片目录：$imagesPath" -ForegroundColor Red
@@ -117,47 +137,53 @@ $coverNames = @('cover', '_cover', '封面')
 $DRAFT = '草稿箱'
 $UNCLASSIFIED = '未分类'
 
-# ---------- 缩略图支持（.NET 自带的 System.Drawing，无需装任何东西）----------
+# ---------- 派生图（.NET 自带的 System.Drawing，无需装任何东西）----------
+# 两档，原图不再被页面自动加载：
+#   thumbs/  网格卡片和封面用，最长边 600px
+#   views/   灯箱查看用，最长边 1600px（灯箱最多显示约 1000px 宽）
+#   原图     只在「下载」和「复制图片 URL」时用到
 
-$thumbsAvailable = $false
+$derivativesAvailable = $false
 if (-not $NoThumbs) {
     try {
         Add-Type -AssemblyName System.Drawing
-        $thumbsAvailable = $true
+        $derivativesAvailable = $true
     }
     catch {
-        Write-Host "无法加载 System.Drawing，本次跳过缩略图：$($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "无法加载 System.Drawing，本次跳过派生图：$($_.Exception.Message)" -ForegroundColor Yellow
     }
 }
 
-# 源图相对 images/ 的路径 -> 缩略图相对仓库的路径
+# 源图相对 images/ 的路径 -> 派生图相对仓库的路径
 $thumbMap = @{}
-$thumbUsed = @{}      # 防止不同源图撞到同一个缩略图文件名
-$thumbStats = @{ made = 0; skipped = 0; failed = 0; bytes = 0 }
+$viewMap = @{}
+$usedNames = @{}      # 防止不同源图撞到同一个派生图文件名
+$thumbStats = @{ made = 0; skipped = 0; failed = 0; dropped = 0; bytes = 0 }
+$viewStats = @{ made = 0; skipped = 0; failed = 0; dropped = 0; bytes = 0 }
 
-function Get-ThumbRelPath($relFromImages) {
+function Get-DerivativeRelPath($relFromImages, $dirName) {
     $dir = Split-Path $relFromImages -Parent
     $base = [System.IO.Path]::GetFileNameWithoutExtension($relFromImages)
 
-    $candidate = if ($dir) { Join-Path $ThumbDir (Join-Path $dir "$base.jpg") } else { Join-Path $ThumbDir "$base.jpg" }
+    $candidate = if ($dir) { Join-Path $dirName (Join-Path $dir "$base.jpg") } else { Join-Path $dirName "$base.jpg" }
     $candidate = $candidate -replace '\\', '/'
 
     # 同名不同扩展名（a.png 和 a.jpg）会撞车，撞了就带上原扩展名
-    if ($thumbUsed.ContainsKey($candidate) -and $thumbUsed[$candidate] -ne $relFromImages) {
+    if ($usedNames.ContainsKey($candidate) -and $usedNames[$candidate] -ne $relFromImages) {
         $ext = [System.IO.Path]::GetExtension($relFromImages).TrimStart('.').ToLower()
-        $candidate = if ($dir) { Join-Path $ThumbDir (Join-Path $dir "$base.$ext.jpg") } else { Join-Path $ThumbDir "$base.$ext.jpg" }
+        $candidate = if ($dir) { Join-Path $dirName (Join-Path $dir "$base.$ext.jpg") } else { Join-Path $dirName "$base.$ext.jpg" }
         $candidate = $candidate -replace '\\', '/'
     }
-    $thumbUsed[$candidate] = $relFromImages
+    $usedNames[$candidate] = $relFromImages
     return $candidate
 }
 
-function New-Thumbnail($sourcePath, $targetPath) {
+function New-ScaledJpeg($sourcePath, $targetPath, $maxWidth, $quality) {
     $img = $null; $bmp = $null; $gfx = $null
     try {
         $img = [System.Drawing.Image]::FromFile($sourcePath)
 
-        $ratio = $ThumbWidth / $img.Width
+        $ratio = $maxWidth / $img.Width
         if ($ratio -gt 1) { $ratio = 1 }        # 不放大
         $w = [int][Math]::Max(1, [Math]::Round($img.Width * $ratio))
         $h = [int][Math]::Max(1, [Math]::Round($img.Height * $ratio))
@@ -181,7 +207,7 @@ function New-Thumbnail($sourcePath, $targetPath) {
 
         $encParams = New-Object System.Drawing.Imaging.EncoderParameters(1)
         $encParams.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
-            [System.Drawing.Imaging.Encoder]::Quality, [int]$ThumbQuality)
+            [System.Drawing.Imaging.Encoder]::Quality, [int]$quality)
 
         $bmp.Save($targetPath, $codec, $encParams)
         return $true
@@ -196,41 +222,60 @@ function New-Thumbnail($sourcePath, $targetPath) {
     }
 }
 
-# 为一张图准备缩略图，成功后记进 $thumbMap
-function Add-ThumbFor($relFromImages) {
-    if (-not $thumbsAvailable) { return }
+# 为一张图生成一档派生图，成功后记进对应的 map
+function Add-Derivative($relFromImages, $map, $dirName, $maxWidth, $quality, $stats) {
+    if (-not $derivativesAvailable) { return }
 
     # 已经处理过就跳过：封面和图片会是同一张，避免重复计数
-    if ($thumbMap.ContainsKey($relFromImages)) { return }
+    if ($map.ContainsKey($relFromImages)) { return }
 
     $ext = [System.IO.Path]::GetExtension($relFromImages).ToLower()
     if ($thumbableExtensions -notcontains $ext) { return }   # webp/avif/svg 跳过
 
-    $thumbRel = Get-ThumbRelPath $relFromImages
+    $rel = Get-DerivativeRelPath $relFromImages $dirName
     $sourceFull = Join-Path $imagesPath $relFromImages
-    $targetFull = Join-Path $root $thumbRel
+    $targetFull = Join-Path $root ($rel -replace '/', '\')
 
-    # 增量：缩略图比原图新就跳过
+    # 增量：派生图比原图新就跳过
     if (Test-Path -LiteralPath $targetFull) {
         $srcTime = (Get-Item -LiteralPath $sourceFull).LastWriteTimeUtc
         $dstTime = (Get-Item -LiteralPath $targetFull).LastWriteTimeUtc
         if ($dstTime -ge $srcTime) {
-            $thumbMap[$relFromImages] = $thumbRel
-            $thumbStats.skipped++
-            $thumbStats.bytes += (Get-Item -LiteralPath $targetFull).Length
+            $map[$relFromImages] = $rel
+            $stats.skipped++
+            $stats.bytes += (Get-Item -LiteralPath $targetFull).Length
             return
         }
     }
 
-    if (New-Thumbnail $sourceFull $targetFull) {
-        $thumbMap[$relFromImages] = $thumbRel
-        $thumbStats.made++
-        $thumbStats.bytes += (Get-Item -LiteralPath $targetFull).Length
+    if (New-ScaledJpeg $sourceFull $targetFull $maxWidth $quality) {
+        $derivedSize = (Get-Item -LiteralPath $targetFull).Length
+        $sourceSize = (Get-Item -LiteralPath $sourceFull).Length
+
+        # 本来就小的图，重编码成 JPEG 反而更大（PNG 小图很常见）。
+        # 这种情况直接丢掉派生图，让页面用原图，反而更快。
+        if ($derivedSize -ge $sourceSize) {
+            Remove-Item -LiteralPath $targetFull -Force
+            $stats.dropped++
+            return
+        }
+
+        $map[$relFromImages] = $rel
+        $stats.made++
+        $stats.bytes += $derivedSize
     }
     else {
-        $thumbStats.failed++
-        Write-Host ("  缩略图失败，将直接用原图：" + $relFromImages) -ForegroundColor Yellow
+        $stats.failed++
+        Write-Host ("  $dirName 生成失败，将直接用原图：" + $relFromImages) -ForegroundColor Yellow
     }
+}
+
+function Add-ThumbFor($relFromImages) {
+    Add-Derivative $relFromImages $thumbMap $ThumbDir $ThumbWidth $ThumbQuality $thumbStats
+}
+
+function Add-ViewFor($relFromImages) {
+    Add-Derivative $relFromImages $viewMap $ViewDir $ViewWidth $ViewQuality $viewStats
 }
 
 function ConvertTo-TagArray($value) {
@@ -325,14 +370,19 @@ foreach ($file in $files) {
         $tree[$group][$collection][$role] = New-Object System.Collections.Generic.List[object]
     }
 
-    # 先生成缩略图，再写进条目
+    # 先生成两档派生图，再写进条目
     Add-ThumbFor $relFromImages
+    Add-ViewFor $relFromImages
+
     $thumbRel = ''
     if ($thumbMap.ContainsKey($relFromImages)) { $thumbRel = $thumbMap[$relFromImages] }
+    $viewRel = ''
+    if ($viewMap.ContainsKey($relFromImages)) { $viewRel = $viewMap[$relFromImages] }
 
     $tree[$group][$collection][$role].Add([pscustomobject][ordered]@{
         file        = $relPath
         thumb       = $thumbRel
+        view        = $viewRel
         title       = $title
         description = $description
         tags        = $tags
@@ -466,35 +516,43 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
     $totalImages += $groupImages
 }
 
-# ---------- 清理孤儿缩略图 ----------
-# 图片被删除或改名后，thumbs/ 里会留下对不上号的旧文件。
+# ---------- 清理孤儿派生图 ----------
+# 图片被删除或改名后，thumbs/ views/ 里会留下对不上号的旧文件。
 # 不清掉的话它们会一直跟着仓库走，越积越多。
 
 $orphansRemoved = 0
 
-if ($thumbsAvailable -and (Test-Path -LiteralPath $thumbRoot)) {
+function Remove-OrphanDerivatives($rootDir, $map) {
+    if (-not $derivativesAvailable) { return 0 }
+    if (-not (Test-Path -LiteralPath $rootDir)) { return 0 }
+
     $expected = @{}
-    foreach ($key in $thumbMap.Keys) {
-        $full = Join-Path $root ($thumbMap[$key] -replace '/', '\')
-        $expected[$full] = $true
+    foreach ($key in $map.Keys) {
+        $expected[(Join-Path $root ($map[$key] -replace '/', '\'))] = $true
     }
 
-    Get-ChildItem -LiteralPath $thumbRoot -Recurse -File | ForEach-Object {
+    $removed = 0
+    Get-ChildItem -LiteralPath $rootDir -Recurse -File | ForEach-Object {
         if (-not $expected.ContainsKey($_.FullName)) {
             Remove-Item -LiteralPath $_.FullName -Force
-            $orphansRemoved++
+            $removed++
         }
     }
 
     # 顺手删掉空目录
-    Get-ChildItem -LiteralPath $thumbRoot -Recurse -Directory |
+    Get-ChildItem -LiteralPath $rootDir -Recurse -Directory |
         Sort-Object { $_.FullName.Length } -Descending |
         ForEach-Object {
             if (-not (Get-ChildItem -LiteralPath $_.FullName -Recurse -File -ErrorAction SilentlyContinue)) {
                 Remove-Item -LiteralPath $_.FullName -Recurse -Force
             }
         }
+
+    return $removed
 }
+
+$orphansRemoved += Remove-OrphanDerivatives $thumbRoot $thumbMap
+$orphansRemoved += Remove-OrphanDerivatives $viewRoot $viewMap
 
 if ($groupsOut.Count -eq 0) {
     $json = '[]'
@@ -582,24 +640,29 @@ if ($totalImages -gt 0) {
     Write-Host "提示：换图集封面 = 往该图集文件夹放一个 cover.jpg；改标题/标签 = 编辑 images\meta.json" -ForegroundColor DarkGray
 }
 
-# ---------- 缩略图统计 ----------
+# ---------- 派生图统计 ----------
 
-if ($thumbsAvailable) {
-    $madeText = "新生成 $($thumbStats.made) 张"
-    if ($thumbStats.skipped -gt 0) { $madeText += "，复用 $($thumbStats.skipped) 张" }
-    $sizeText = "{0:N0} KB" -f ($thumbStats.bytes / 1KB)
+if ($derivativesAvailable) {
+    function Format-DerivativeStats($stats) {
+        $text = "新生成 $($stats.made) 张"
+        if ($stats.skipped -gt 0) { $text += "，复用 $($stats.skipped) 张" }
+        if ($stats.dropped -gt 0) { $text += "，$($stats.dropped) 张原图更小改用原图" }
+        return "$text，合计 {0:N0} KB" -f ($stats.bytes / 1KB)
+    }
 
     Write-Host ""
-    Write-Host "缩略图（$ThumbDir/）：$madeText，合计 $sizeText" -ForegroundColor Green
+    Write-Host ("缩略图（{0}/，网格用）：{1}" -f $ThumbDir, (Format-DerivativeStats $thumbStats)) -ForegroundColor Green
+    Write-Host ("查看图（{0}/，灯箱用）：{1}" -f $ViewDir, (Format-DerivativeStats $viewStats)) -ForegroundColor Green
+
     if ($orphansRemoved -gt 0) {
-        Write-Host "  清理了 $orphansRemoved 个已失效的旧缩略图（图片被删或改名留下的）" -ForegroundColor Green
+        Write-Host "  清理了 $orphansRemoved 个已失效的旧派生图（图片被删或改名留下的）" -ForegroundColor Green
     }
-    if ($thumbStats.failed -gt 0) {
-        Write-Host "  有 $($thumbStats.failed) 张生成失败，这些图会直接用原图显示" -ForegroundColor Yellow
+    if ($thumbStats.failed -gt 0 -or $viewStats.failed -gt 0) {
+        Write-Host "  有 $($thumbStats.failed + $viewStats.failed) 张生成失败，这些图会直接用原图显示" -ForegroundColor Yellow
     }
-    Write-Host "  网格和封面用小图，点开看 / 下载仍是原图。" -ForegroundColor DarkGray
+    Write-Host ("  合计 {0:N0} KB；原图只在点击「下载」时用到。" -f (($thumbStats.bytes + $viewStats.bytes) / 1KB)) -ForegroundColor DarkGray
 }
 elseif (-not $NoThumbs) {
     Write-Host ""
-    Write-Host "本次未生成缩略图。" -ForegroundColor Yellow
+    Write-Host "本次未生成派生图。" -ForegroundColor Yellow
 }

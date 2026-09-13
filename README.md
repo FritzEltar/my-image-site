@@ -20,6 +20,7 @@ my-image-site/
 ├── images/                        图片放这里，目录层级 = 网站层级
 │   ├── README.txt
 │   └── meta.json                  （可选）封面 / 标题 / 标签，需自己创建
+├── thumbs/                        缩略图 —— 由脚本自动生成，不要手改
 └── tools/
     ├── generate-manifest.ps1      扫描 images/ 生成 images.json
     ├── update-gallery.cmd         上面脚本的双击版
@@ -79,6 +80,43 @@ images/
    —— 想换封面，直接替换这个文件即可。它不会被当成图片显示在列表里。
 2. `images/meta.json` 里该图集的 `cover` 字段
 3. 该图集里正式角色的**第一张图**（草稿箱里的图只作兜底，不会优先当封面）
+
+---
+
+## 缩略图（自动生成，已开启）
+
+你的原图很大（最大一张 6.9 MB / 4096×3072），网格里一张卡片却只有 285px 宽。
+所以生成脚本会**顺手给每张图做一张小图**放进 `thumbs/`：
+
+```
+images/全部/大图集1/角色1/大图集截图.png     6.9 MB   ← 原图，点开才加载
+thumbs/全部/大图集1/角色1/大图集截图.jpg      50 KB   ← 网格/封面用这张
+```
+
+- **网格和封面卡用缩略图，点开灯箱和下载仍是原图**，画质不受影响。
+- 缩略图最长边 600px、JPEG 质量 82（约为卡片宽度的 2 倍，高清屏也不糊）。
+- 缩略图比原图新时自动跳过，所以重复运行很快；删掉 `thumbs/` 就会全部重做。
+- 用的是 .NET 自带的 `System.Drawing`，**不需要安装任何东西**。
+- `webp` / `avif` / `svg` 这几种读不了，会自动跳过，这些图直接用原图显示。
+- 缩略图**必须一起提交**，否则线上看到的是原图。
+
+效果（当前图库）：
+
+| 页面 | 之前 | 现在 |
+|---|---|---|
+| 图集列表页（2 张封面） | 12.08 MB | **0.15 MB**（80 倍） |
+| 图集内页 · 一个角色 3 张 | 7.13 MB | **0.18 MB**（40 倍） |
+| 整个图库缩略图合计 | — | 0.39 MB |
+
+想调整：
+
+```powershell
+# 只更新清单，不做缩略图
+powershell -File tools\generate-manifest.ps1 -NoThumbs
+
+# 想要更清晰的缩略图（体积会大一些）
+powershell -File tools\generate-manifest.ps1 -ThumbWidth 900 -ThumbQuality 88
+```
 
 ---
 
@@ -187,28 +225,34 @@ git push
 
 ## 几点限制与提醒
 
-- **单文件 ≤ 100 MB**，超过会被 GitHub 直接拒绝推送；建议单张控制在 5 MB 内。
-  现在库里最大的一张约 6.9 MB，首屏加载会偏慢。
+- **单文件 ≤ 100 MB**，超过会被 GitHub 直接拒绝推送。原图大一点没关系
+  （网页只加载缩略图），但单张建议别超过 20 MB。
 - 仓库建议保持在 1 GB 以内，GitHub Pages 站点也有 1 GB 软上限。
+  缩略图只占几百 KB，不用担心。
 - 图片是公开的，别放私人照片或涉及隐私、版权问题的素材。
 - **本机 git 走代理**：这台机器上 git 已配置
   `http.proxy = http://127.0.0.1:7897`（只配在本仓库）。
   代理软件必须开着，否则 `git push` 会报 `Connection was reset`。
   想撤销：`git config --unset http.proxy`。
-- **改动 `tools\generate-manifest.ps1` 后请务必存成「UTF-8 带 BOM」。**
+- **改动 `tools\generate-manifest.ps1` 后，最好存成「UTF-8 带 BOM」。**
   本机只有 Windows PowerShell 5.1，它会把无 BOM 的 UTF-8 脚本当 ANSI 读，
-  导致里面的中文变成乱码、脚本直接报语法错误。用 VS Code 的话在右下角
-  编码处选 `UTF-8 with BOM` 保存。
+  导致里面的中文变成乱码、脚本直接报语法错误。
+  **不过不用担心**：双击 `tools\update-gallery.cmd` 时它会自动检测并补回 BOM
+  （会打印一行 `[fix] re-added UTF-8 BOM`），所以即使忘了也不会出问题。
+  只有直接 `powershell -File tools\generate-manifest.ps1` 时才需要自己注意。
 
 ---
 
 ## 工作原理
 
-- `images.json` 是三级嵌套清单：`groups → collections → roles → images`。
+- `images.json` 是三级嵌套清单：`groups → collections → roles → images`，
+  每个图片条目带 `file`（原图）和 `thumb`（缩略图）两个路径。
 - `script.js` 把 URL hash 解析成 `大类 / 图集 / 角色` 三段，据此切换视图；
   改 hash 会触发 `hashchange`，所以浏览器前进后退天然可用。
 - 路由里的非法层级会自动回退到上一层（比如手工输入了不存在的角色名）。
 - 第 1 级只有一个大类时，首页直接进入它，省掉一次没有意义的点击。
+- 网格和图集封面用 `thumb` / `coverThumb`，灯箱和下载用 `file`
+  （缩略图万一缺失会自动回退到原图）。
 - 图片用 `loading="lazy"` 懒加载；图集封面优先用 `cover.*` 文件。
 - 深色模式存 `localStorage`，首次访问跟随系统 `prefers-color-scheme`。
 - 灯箱支持 `Esc` 关闭、`←` `→` 在**当前筛选结果**里翻页、点遮罩关闭。

@@ -45,6 +45,23 @@
         }
       }
       也兼容旧格式：顶层直接就是「图片路径 -> 属性」的映射。
+
+    ------------------------------------------------------------
+    缩略图：
+      脚本会顺手给每张图生成一张小图，放在 thumbs/ 下（目录结构与
+      images/ 保持一致，统一转成 .jpg）。网站网格和封面卡用缩略图，
+      点开灯箱和下载仍然是原图。
+
+      用的是 .NET 自带的 System.Drawing，不需要安装任何东西。
+      缩略图比原图新时会自动跳过，所以重复运行很快。
+
+      可调参数：
+        -NoThumbs            只更新清单，不生成缩略图
+        -ThumbWidth 600      缩略图最大宽度（默认 600）
+        -ThumbQuality 82     缩略图 JPEG 质量（默认 82）
+
+      注意：webp / avif / svg 这几种 System.Drawing 读不了，会自动
+      跳过，这些图在网格里直接用原图（清单里 thumb 字段为空）。
 #>
 
 [CmdletBinding()]
@@ -53,7 +70,19 @@ param(
     [string]$ImagesDir = 'images',
 
     # 输出的清单文件名（相对仓库根目录）
-    [string]$OutputFile = 'images.json'
+    [string]$OutputFile = 'images.json',
+
+    # 缩略图输出目录（相对仓库根目录）
+    [string]$ThumbDir = 'thumbs',
+
+    # 缩略图最大宽度（像素）。网格里一张卡片约 285px 宽，600 够 2 倍屏
+    [int]$ThumbWidth = 600,
+
+    # 缩略图 JPEG 质量（1-100）
+    [int]$ThumbQuality = 82,
+
+    # 只更新清单，不生成缩略图
+    [switch]$NoThumbs
 )
 
 $ErrorActionPreference = 'Stop'
@@ -61,6 +90,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $imagesPath = Join-Path $root $ImagesDir
 $outputPath = Join-Path $root $OutputFile
+$thumbRoot = Join-Path $root $ThumbDir
 
 if (-not (Test-Path -LiteralPath $imagesPath)) {
     Write-Host "找不到图片目录：$imagesPath" -ForegroundColor Red
@@ -68,9 +98,124 @@ if (-not (Test-Path -LiteralPath $imagesPath)) {
 }
 
 $extensions = @('.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg')
+# System.Drawing 读不了的格式，只能直接用小图代替缩略图
+$thumbableExtensions = @('.jpg', '.jpeg', '.png', '.gif', '.bmp')
 $coverNames = @('cover', '_cover', '封面')
 $DRAFT = '草稿箱'
 $UNCLASSIFIED = '未分类'
+
+# ---------- 缩略图支持（.NET 自带的 System.Drawing，无需装任何东西）----------
+
+$thumbsAvailable = $false
+if (-not $NoThumbs) {
+    try {
+        Add-Type -AssemblyName System.Drawing
+        $thumbsAvailable = $true
+    }
+    catch {
+        Write-Host "无法加载 System.Drawing，本次跳过缩略图：$($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+# 源图相对 images/ 的路径 -> 缩略图相对仓库的路径
+$thumbMap = @{}
+$thumbUsed = @{}      # 防止不同源图撞到同一个缩略图文件名
+$thumbStats = @{ made = 0; skipped = 0; failed = 0; bytes = 0 }
+
+function Get-ThumbRelPath($relFromImages) {
+    $dir = Split-Path $relFromImages -Parent
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($relFromImages)
+
+    $candidate = if ($dir) { Join-Path $ThumbDir (Join-Path $dir "$base.jpg") } else { Join-Path $ThumbDir "$base.jpg" }
+    $candidate = $candidate -replace '\\', '/'
+
+    # 同名不同扩展名（a.png 和 a.jpg）会撞车，撞了就带上原扩展名
+    if ($thumbUsed.ContainsKey($candidate) -and $thumbUsed[$candidate] -ne $relFromImages) {
+        $ext = [System.IO.Path]::GetExtension($relFromImages).TrimStart('.').ToLower()
+        $candidate = if ($dir) { Join-Path $ThumbDir (Join-Path $dir "$base.$ext.jpg") } else { Join-Path $ThumbDir "$base.$ext.jpg" }
+        $candidate = $candidate -replace '\\', '/'
+    }
+    $thumbUsed[$candidate] = $relFromImages
+    return $candidate
+}
+
+function New-Thumbnail($sourcePath, $targetPath) {
+    $img = $null; $bmp = $null; $gfx = $null
+    try {
+        $img = [System.Drawing.Image]::FromFile($sourcePath)
+
+        $ratio = $ThumbWidth / $img.Width
+        if ($ratio -gt 1) { $ratio = 1 }        # 不放大
+        $w = [int][Math]::Max(1, [Math]::Round($img.Width * $ratio))
+        $h = [int][Math]::Max(1, [Math]::Round($img.Height * $ratio))
+
+        $bmp = New-Object System.Drawing.Bitmap($w, $h)
+        $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+        $gfx.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $gfx.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+        # 透明区域铺白，否则转 JPEG 会变黑
+        $gfx.Clear([System.Drawing.Color]::White)
+        $gfx.DrawImage($img, 0, 0, $w, $h)
+
+        $targetDir = Split-Path -Parent $targetPath
+        if (-not (Test-Path -LiteralPath $targetDir)) {
+            New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+        }
+
+        $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
+            Where-Object { $_.MimeType -eq 'image/jpeg' } | Select-Object -First 1
+
+        $encParams = New-Object System.Drawing.Imaging.EncoderParameters(1)
+        $encParams.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
+            [System.Drawing.Imaging.Encoder]::Quality, [int]$ThumbQuality)
+
+        $bmp.Save($targetPath, $codec, $encParams)
+        return $true
+    }
+    catch {
+        return $false
+    }
+    finally {
+        if ($gfx) { $gfx.Dispose() }
+        if ($bmp) { $bmp.Dispose() }
+        if ($img) { $img.Dispose() }
+    }
+}
+
+# 为一张图准备缩略图，成功后记进 $thumbMap
+function Add-ThumbFor($relFromImages) {
+    if (-not $thumbsAvailable) { return }
+
+    $ext = [System.IO.Path]::GetExtension($relFromImages).ToLower()
+    if ($thumbableExtensions -notcontains $ext) { return }   # webp/avif/svg 跳过
+
+    $thumbRel = Get-ThumbRelPath $relFromImages
+    $sourceFull = Join-Path $imagesPath $relFromImages
+    $targetFull = Join-Path $root $thumbRel
+
+    # 增量：缩略图比原图新就跳过
+    if (Test-Path -LiteralPath $targetFull) {
+        $srcTime = (Get-Item -LiteralPath $sourceFull).LastWriteTimeUtc
+        $dstTime = (Get-Item -LiteralPath $targetFull).LastWriteTimeUtc
+        if ($dstTime -ge $srcTime) {
+            $thumbMap[$relFromImages] = $thumbRel
+            $thumbStats.skipped++
+            $thumbStats.bytes += (Get-Item -LiteralPath $targetFull).Length
+            return
+        }
+    }
+
+    if (New-Thumbnail $sourceFull $targetFull) {
+        $thumbMap[$relFromImages] = $thumbRel
+        $thumbStats.made++
+        $thumbStats.bytes += (Get-Item -LiteralPath $targetFull).Length
+    }
+    else {
+        $thumbStats.failed++
+        Write-Host ("  缩略图失败，将直接用原图：" + $relFromImages) -ForegroundColor Yellow
+    }
+}
 
 function ConvertTo-TagArray($value) {
     if ($null -eq $value) { return @() }
@@ -164,8 +309,14 @@ foreach ($file in $files) {
         $tree[$group][$collection][$role] = New-Object System.Collections.Generic.List[object]
     }
 
+    # 先生成缩略图，再写进条目
+    Add-ThumbFor $relFromImages
+    $thumbRel = ''
+    if ($thumbMap.ContainsKey($relFromImages)) { $thumbRel = $thumbMap[$relFromImages] }
+
     $tree[$group][$collection][$role].Add([pscustomobject][ordered]@{
         file        = $relPath
+        thumb       = $thumbRel
         title       = $title
         description = $description
         tags        = $tags
@@ -189,6 +340,7 @@ foreach ($group in @($tree.Keys)) {
         if ($found) {
             $rel = $found.FullName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
             $coverFiles["$group/$collection"] = "$ImagesDir/$rel"
+            Add-ThumbFor $rel      # 封面也要缩略图，它在卡片里也是小图
         }
     }
 }
@@ -202,6 +354,7 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
     $collectionsOut = New-Object System.Collections.Generic.List[object]
     $groupImages = 0
     $groupCover = ''
+    $groupCoverThumb = ''
 
     foreach ($collection in @($tree[$group].Keys | Sort-Object)) {
         $rolesOut = New-Object System.Collections.Generic.List[object]
@@ -255,6 +408,15 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
             if ($firstImage) { $cover = $firstImage } else { $cover = $firstDraftImage }
         }
 
+        # 封面在卡片里也是小图，同样给它一张缩略图
+        $coverRel = ''
+        if ($cover -match "^$([regex]::Escape($ImagesDir))/(.+)$") { $coverRel = $matches[1] }
+        if ($coverRel -and (Test-Path -LiteralPath (Join-Path $imagesPath $coverRel))) {
+            Add-ThumbFor $coverRel
+        }
+        $coverThumb = ''
+        if ($coverRel -and $thumbMap.ContainsKey($coverRel)) { $coverThumb = $thumbMap[$coverRel] }
+
         $displayName = $collection
         if ($metaCollections.ContainsKey($key) -and $metaCollections[$key].name) {
             $displayName = [string]$metaCollections[$key].name
@@ -264,12 +426,14 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
             name       = $displayName
             path       = $key
             cover      = $cover
+            coverThumb = $coverThumb
             imageCount = $collectionImages
             roles      = $rolesOut.ToArray()
         }) | Out-Null
 
         $groupImages += $collectionImages
         if (-not $groupCover) { $groupCover = $cover }
+        if (-not $groupCoverThumb) { $groupCoverThumb = $coverThumb }
     }
 
     if ($collectionsOut.Count -eq 0) { continue }
@@ -277,6 +441,7 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
     $groupsOut.Add([pscustomobject][ordered]@{
         name            = $group
         cover           = $groupCover
+        coverThumb      = $groupCoverThumb
         collectionCount = $collectionsOut.Count
         imageCount      = $groupImages
         collections     = $collectionsOut.ToArray()
@@ -332,4 +497,23 @@ foreach ($g in $groupsOut) {
 if ($totalImages -gt 0) {
     Write-Host ""
     Write-Host "提示：换图集封面 = 往该图集文件夹放一个 cover.jpg；改标题/标签 = 编辑 images\meta.json" -ForegroundColor DarkGray
+}
+
+# ---------- 缩略图统计 ----------
+
+if ($thumbsAvailable) {
+    $madeText = "新生成 $($thumbStats.made) 张"
+    if ($thumbStats.skipped -gt 0) { $madeText += "，复用 $($thumbStats.skipped) 张" }
+    $sizeText = "{0:N0} KB" -f ($thumbStats.bytes / 1KB)
+
+    Write-Host ""
+    Write-Host "缩略图（$ThumbDir/）：$madeText，合计 $sizeText" -ForegroundColor Green
+    if ($thumbStats.failed -gt 0) {
+        Write-Host "  有 $($thumbStats.failed) 张生成失败，这些图会直接用原图显示" -ForegroundColor Yellow
+    }
+    Write-Host "  网格和封面用小图，点开看 / 下载仍是原图。" -ForegroundColor DarkGray
+}
+elseif (-not $NoThumbs) {
+    Write-Host ""
+    Write-Host "本次未生成缩略图。" -ForegroundColor Yellow
 }

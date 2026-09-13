@@ -309,7 +309,8 @@
             el.groupsGrid.appendChild(createCoverCard({
                 title: group.name,
                 subtitle: group.collectionCount + ' 个图集 · ' + group.imageCount + ' 张图',
-                cover: group.cover,
+                cover: group.coverThumb || group.cover,
+                coverFallback: group.cover,
                 alt: group.name,
                 onClick: function () { navigate(group.name, null, null); }
             }));
@@ -336,7 +337,9 @@
             el.collectionsGrid.appendChild(createCoverCard({
                 title: collection.name,
                 subtitle: bits.join(' · '),
-                cover: collection.cover,
+                // 封面卡是小图，优先用缩略图
+                cover: collection.coverThumb || collection.cover,
+                coverFallback: collection.cover,
                 alt: collection.name,
                 onClick: function () {
                     navigate(group.name, collection.name, null);
@@ -360,7 +363,15 @@
         img.alt = opts.alt || opts.title;
         img.loading = 'lazy';
         img.decoding = 'async';
+
+        // 注意用布尔标记而不是比较 URL：img.src 会被浏览器编码，中文路径比不出来
+        var triedFallback = false;
         img.addEventListener('error', function () {
+            if (!triedFallback && opts.coverFallback) {   // 缩略图缺失就退回原图
+                triedFallback = true;
+                img.src = opts.coverFallback;
+                return;
+            }
             wrap.innerHTML = '';
             var fail = document.createElement('div');
             fail.className = 'cover-fallback';
@@ -470,11 +481,19 @@
         wrapper.className = 'image-wrapper';
 
         var image = document.createElement('img');
-        image.src = img.file;
+        // 网格里用小图（缩略图），点开灯箱才加载原图
+        image.src = img.thumb || img.file;
         image.alt = img.title;
         image.loading = 'lazy';
         image.decoding = 'async';
+
+        var usingThumb = !!(img.thumb && img.thumb !== img.file);
         image.addEventListener('error', function () {
+            if (usingThumb) {          // 缩略图缺失就退回原图
+                usingThumb = false;
+                image.src = img.file;
+                return;
+            }
             wrapper.innerHTML = '';
             var fail = document.createElement('div');
             fail.className = 'loading';

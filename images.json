@@ -4,6 +4,7 @@
                    {
                        "name":  "全部",
                        "cover":  "images/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
+                       "coverThumb":  "thumbs/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
                        "collectionCount":  2,
                        "imageCount":  11,
                        "collections":  [
@@ -11,6 +12,7 @@
                                                "name":  "大图集1",
                                                "path":  "全部/大图集1",
                                                "cover":  "images/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
+                                               "coverThumb":  "thumbs/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
                                                "imageCount":  6,
                                                "roles":  [
                                                              {
@@ -19,6 +21,7 @@
                                                                  "images":  [
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
+                                                                                    "thumb":  "thumbs/全部/大图集1/角色1/036303ABAAAF993F32AC252300532DF3.jpg",
                                                                                     "title":  "036303ABAAAF993F32AC252300532DF3",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -27,6 +30,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/角色1/屏幕截图 2026-08-19 073559.png",
+                                                                                    "thumb":  "thumbs/全部/大图集1/角色1/屏幕截图 2026-08-19 073559.jpg",
                                                                                     "title":  "屏幕截图 2026-08-19 073559",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -35,6 +39,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/角色1/屏幕截图 2026-08-21 084059.png",
+                                                                                    "thumb":  "thumbs/全部/大图集1/角色1/屏幕截图 2026-08-21 084059.jpg",
                                                                                     "title":  "屏幕截图 2026-08-21 084059",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -49,6 +54,7 @@
                                                                  "images":  [
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/角色2/屏幕截图 2026-08-21 090522.png",
+                                                                                    "thumb":  "thumbs/全部/大图集1/角色2/屏幕截图 2026-08-21 090522.jpg",
                                                                                     "title":  "屏幕截图 2026-08-21 090522",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -57,6 +63,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/角色2/屏幕截图 2026-08-23 081201.png",
+                                                                                    "thumb":  "thumbs/全部/大图集1/角色2/屏幕截图 2026-08-23 081201.jpg",
                                                                                     "title":  "屏幕截图 2026-08-23 081201",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -65,6 +72,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集1/角色2/屏幕截图(37).png",
+                                                                                    "thumb":  "thumbs/全部/大图集1/角色2/屏幕截图(37).jpg",
                                                                                     "title":  "屏幕截图(37)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -79,6 +87,7 @@
                                                "name":  "大图集2",
                                                "path":  "全部/大图集2",
                                                "cover":  "images/全部/大图集2/角色1/屏幕截图(39).png",
+                                               "coverThumb":  "thumbs/全部/大图集2/角色1/屏幕截图(39).jpg",
                                                "imageCount":  5,
                                                "roles":  [
                                                              {
@@ -87,6 +96,7 @@
                                                                  "images":  [
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/角色1/屏幕截图(39).png",
+                                                                                    "thumb":  "thumbs/全部/大图集2/角色1/屏幕截图(39).jpg",
                                                                                     "title":  "屏幕截图(39)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -95,6 +105,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/角色1/屏幕截图(41).png",
+                                                                                    "thumb":  "thumbs/全部/大图集2/角色1/屏幕截图(41).jpg",
                                                                                     "title":  "屏幕截图(41)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -103,6 +114,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/角色1/屏幕截图(47).png",
+                                                                                    "thumb":  "thumbs/全部/大图集2/角色1/屏幕截图(47).jpg",
                                                                                     "title":  "屏幕截图(47)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -117,6 +129,7 @@
                                                                  "images":  [
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/角色2/屏幕截图(48).png",
+                                                                                    "thumb":  "thumbs/全部/大图集2/角色2/屏幕截图(48).jpg",
                                                                                     "title":  "屏幕截图(48)",
                                                                                     "description":  "",
                                                                                     "tags":  [
@@ -125,6 +138,7 @@
                                                                                 },
                                                                                 {
                                                                                     "file":  "images/全部/大图集2/角色2/屏幕截图(54).png",
+                                                                                    "thumb":  "thumbs/全部/大图集2/角色2/屏幕截图(54).jpg",
                                                                                     "title":  "屏幕截图(54)",
                                                                                     "description":  "",
                                                                                     "tags":  [

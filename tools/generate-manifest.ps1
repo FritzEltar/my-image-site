@@ -1,4 +1,4 @@
-﻿<#
+<#
     generate-manifest.ps1
     ------------------------------------------------------------
     扫描 images/ 目录，生成网站读取的 images.json 清单。
@@ -62,6 +62,19 @@
 
       注意：webp / avif / svg 这几种 System.Drawing 读不了，会自动
       跳过，这些图在网格里直接用原图（清单里 thumb 字段为空）。
+
+    ------------------------------------------------------------
+    资源版本号：
+      GitHub Pages 对所有文件都发 Cache-Control: max-age=600，浏览器
+      10 分钟内不会重新请求。改了 style.css / script.js 如果 URL 不变，
+      访客就会一直看到旧样式（刷新也没用）。
+
+      所以本脚本会按这两个文件的内容算一个短哈希，写进 index.html：
+
+          <link rel="stylesheet" href="style.css?v=d4b40e2f">
+          <script src="script.js?v=d4b40e2f"></script>
+
+      内容一变版本号就变，浏览器必然重新拉取。不用手动维护。
 #>
 
 [CmdletBinding()]
@@ -512,9 +525,46 @@ else {
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($outputPath, $json, $utf8NoBom)
 
+# ---------- 给 style.css / script.js 打版本号 ----------
+# GitHub Pages 对所有文件都下发 Cache-Control: max-age=600，
+# 浏览器 10 分钟内不会重新请求。如果改了 CSS/JS 而 URL 不变，
+# 访客就会一直看到旧样式（刷也没用）。这里按内容算一个短哈希拼在
+# URL 后面，内容一变 URL 就变，浏览器必然重新拉取。
+
+$indexPath = Join-Path $root 'index.html'
+$assetVersion = ''
+
+if (Test-Path -LiteralPath $indexPath) {
+    $combined = ''
+    foreach ($asset in @('style.css', 'script.js')) {
+        $assetPath = Join-Path $root $asset
+        if (Test-Path -LiteralPath $assetPath) {
+            $combined += [System.IO.File]::ReadAllText($assetPath, [System.Text.Encoding]::UTF8)
+        }
+    }
+
+    if ($combined) {
+        $md5 = [System.Security.Cryptography.MD5]::Create()
+        $assetVersion = ([System.BitConverter]::ToString(
+            $md5.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($combined))) -replace '-', '').Substring(0, 8).ToLower()
+        $md5.Dispose()
+
+        $html = [System.IO.File]::ReadAllText($indexPath, [System.Text.Encoding]::UTF8)
+        $updated = $html -replace 'href="style\.css(\?v=[0-9a-f]+)?"', "href=`"style.css?v=$assetVersion`""
+        $updated = $updated -replace 'src="script\.js(\?v=[0-9a-f]+)?"', "src=`"script.js?v=$assetVersion`""
+
+        if ($updated -ne $html) {
+            [System.IO.File]::WriteAllText($indexPath, $updated, $utf8NoBom)
+        }
+    }
+}
+
 Write-Host ""
 Write-Host "已生成清单：$outputPath" -ForegroundColor Green
 Write-Host "共 $totalImages 张图片 / $($groupsOut.Count) 个大类" -ForegroundColor Green
+if ($assetVersion) {
+    Write-Host "资源版本号：style.css / script.js -> ?v=$assetVersion" -ForegroundColor Green
+}
 
 foreach ($g in $groupsOut) {
     Write-Host ""

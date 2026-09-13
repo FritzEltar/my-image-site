@@ -225,6 +225,31 @@ git push
 
 ---
 
+## 更新后看不到变化？（缓存问题）
+
+GitHub Pages 给**所有**文件都下发 `Cache-Control: max-age=600`，
+意思是「10 分钟内别再来问我要」。直接后果：
+
+- 改完 `style.css` / `script.js` 推上去，访客的浏览器还在用旧的缓存文件，
+  **按 F5 也未必有用**，看起来就像"根本没更新"。
+
+这个坑已经用**资源版本号**填掉了：生成脚本会按 `style.css` + `script.js`
+的内容算一个短哈希，写进 `index.html`：
+
+```html
+<link rel="stylesheet" href="style.css?v=d4b40e2f">
+<script src="script.js?v=d4b40e2f"></script>
+```
+
+内容一变，版本号就变，URL 就变，浏览器必然重新下载。**你什么都不用管**，
+每次双击 `update-gallery.cmd` 都会自动维护。
+
+如果哪次还是看到旧画面，按 **Ctrl + Shift + R**（强制刷新）一次即可。
+实在不行就用无痕窗口打开，或者临时加个参数：
+`https://fritzeltar.github.io/my-image-site/?v=1`
+
+---
+
 ## 字体
 
 正文用的是 **git-scm.com 的同款字体栈**：

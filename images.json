@@ -3,16 +3,16 @@
     "groups":  [
                    {
                        "name":  "全部",
-                       "cover":  "images/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
-                       "coverThumb":  "thumbs/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
+                       "cover":  "images/全部/大图集1/cover.jpg",
+                       "coverThumb":  "thumbs/全部/大图集1/cover.jpg",
                        "collectionCount":  2,
                        "imageCount":  13,
                        "collections":  [
                                            {
                                                "name":  "大图集1",
                                                "path":  "全部/大图集1",
-                                               "cover":  "images/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
-                                               "coverThumb":  "thumbs/全部/大图集1/character1/036303ABAAAF993F32AC252300532DF3.jpg",
+                                               "cover":  "images/全部/大图集1/cover.jpg",
+                                               "coverThumb":  "thumbs/全部/大图集1/cover.jpg",
                                                "imageCount":  8,
                                                "roles":  [
                                                              {
@@ -118,8 +118,8 @@
                                            {
                                                "name":  "大图集2",
                                                "path":  "全部/大图集2",
-                                               "cover":  "images/全部/大图集2/character1/屏幕截图(39).png",
-                                               "coverThumb":  "thumbs/全部/大图集2/character1/屏幕截图(39).jpg",
+                                               "cover":  "images/全部/大图集2/cover.jpg",
+                                               "coverThumb":  "thumbs/全部/大图集2/cover.jpg",
                                                "imageCount":  5,
                                                "roles":  [
                                                              {

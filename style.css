@@ -206,6 +206,57 @@ body {
 
 
 /* =========================
+   二级分类（角色 / 小类别）
+========================= */
+
+.subcategory-section {
+    margin-top: -12px;
+
+    padding-left: 14px;
+
+    border-left: 3px solid #ddd;
+
+    animation: subcategory-in 0.18s ease-out;
+}
+
+@keyframes subcategory-in {
+
+    from {
+        opacity: 0;
+
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform: none;
+    }
+
+}
+
+.subcategory-section .category-btn {
+    background: #f0f0f0;
+
+    color: #555;
+
+    font-size: 13px;
+
+    padding: 6px 14px;
+}
+
+.subcategory-section .category-btn:hover {
+    background: #e0e0e0;
+}
+
+.subcategory-section .category-btn.active {
+    background: #555;
+
+    color: white;
+}
+
+
+/* =========================
    结果信息
 ========================= */
 
@@ -631,6 +682,26 @@ body.dark .category-btn {
 
 body.dark .category-btn.active {
     background: #eee;
+
+    color: #111;
+}
+
+body.dark .subcategory-section {
+    border-color: #3a3a3a;
+}
+
+body.dark .subcategory-section .category-btn {
+    background: #232323;
+
+    color: #bbb;
+}
+
+body.dark .subcategory-section .category-btn:hover {
+    background: #2f2f2f;
+}
+
+body.dark .subcategory-section .category-btn.active {
+    background: #ddd;
 
     color: #111;
 }

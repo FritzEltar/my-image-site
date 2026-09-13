@@ -4,18 +4,22 @@
     扫描 images/ 目录，生成网站读取的 images.json 清单。
 
     用法（在仓库根目录）：
-        pwsh -File tools\generate-manifest.ps1
+        powershell -File tools\generate-manifest.ps1
       或双击 tools\update-gallery.cmd
 
-    规则：
-      · images/yuanshen/001.jpg        -> 分类 "yuanshen"
-      · images/001.jpg                 -> 分类 "未分类"
-      · images/动物/猫/001.jpg         -> 分类 "动物/猫"（支持多级）
+    目录结构 = 分类结构，两级：
+        images/大图集1/角色1/001.jpg
+                └─ 一级 ─┘└ 二级 ┘
+      · 一级文件夹（category）  = 大图集，显示为第一行分类按钮
+      · 二级文件夹（subcategory）= 角色 / 小类别，选中大图集后显示为第二行筛选
+      · images/001.jpg                  -> 一级 "未分类"，无二级
+      · images/大图集1/001.jpg          -> 一级 "大图集1"，无二级
+      · images/大图集1/角色1/服装/1.jpg -> 一级 "大图集1"，二级 "角色1/服装"（三级以上合并成二级）
       · 文件名去掉扩展名后作为标题
       · 若存在 images/meta.json，其中的 title / description / tags /
-        category 会覆盖自动生成的值。格式示例：
+        category / subcategory 会覆盖自动生成的值。格式示例：
           {
-            "yuanshen/001.jpg": {
+            "大图集1/角色1/001.jpg": {
               "title": "雷电将军",
               "description": "官方立绘",
               "tags": ["原神", "参考"]
@@ -85,20 +89,29 @@ foreach ($file in $files) {
     $relFromImages = $file.FullName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
     $relPath = "$ImagesDir/$relFromImages"
 
-    # 分类 = 相对 images/ 的子目录；直接放在根目录则归为“未分类”
+    # 分开一级（大图集）和二级（角色/小类别）
     $dir = $file.DirectoryName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
-    if ([string]::IsNullOrWhiteSpace($dir)) { $dir = '未分类' }
+    $category = '未分类'
+    $subcategory = ''
+    if (-not [string]::IsNullOrWhiteSpace($dir)) {
+        $segments = @($dir -split '/' | Where-Object { $_ })
+        $category = $segments[0]
+        if ($segments.Count -gt 1) {
+            # 三级以上合并进二级，例如 角色1/服装
+            $subcategory = ($segments[1..($segments.Count - 1)]) -join '/'
+        }
+    }
 
     $title = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
     $description = ''
     $tags = @()
-    $category = $dir
 
     if ($meta.ContainsKey($relFromImages)) {
         $m = $meta[$relFromImages]
         if ($m.title) { $title = [string]$m.title }
         if ($m.description) { $description = [string]$m.description }
         if ($m.category) { $category = [string]$m.category }
+        if ($m.subcategory) { $subcategory = [string]$m.subcategory }
         if ($m.tags) { $tags = ConvertTo-TagArray $m.tags }
     }
 
@@ -108,6 +121,7 @@ foreach ($file in $files) {
         file        = $relPath
         title       = $title
         category    = $category
+        subcategory = $subcategory
         description = $description
         tags        = $tags
     }) | Out-Null
@@ -146,9 +160,20 @@ Write-Host "已生成清单：$outputPath" -ForegroundColor Green
 Write-Host "共 $($entries.Count) 张图片" -ForegroundColor Green
 
 if ($entries.Count -gt 0) {
+    Write-Host "一级分类（大图集）：" -ForegroundColor DarkGray
     $entries | Group-Object category |
         Sort-Object Count -Descending |
         ForEach-Object { Write-Host ("  {0,-24} {1} 张" -f $_.Name, $_.Count) }
+
+    Write-Host ""
+    Write-Host "二级分类（角色 / 小类别）：" -ForegroundColor DarkGray
+    $entries | Group-Object {
+            if ($_.subcategory) { "$($_.category) / $($_.subcategory)" }
+            else { "$($_.category) / （无二级）" }
+        } |
+        Sort-Object Name |
+        ForEach-Object { Write-Host ("  {0,-34} {1} 张" -f $_.Name, $_.Count) }
+
     Write-Host ""
     Write-Host "提示：想改标题/加标签，编辑 images\meta.json 后重新运行本脚本。" -ForegroundColor DarkGray
 }

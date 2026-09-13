@@ -4,12 +4,18 @@
    数据来源：同目录下的 images.json（由 tools/generate-manifest.ps1 生成）
    清单格式（数组，每个元素一张图）：
      {
-       "file": "images/yuanshen/001.jpg",   // 必填，相对本页面的路径
-       "title": "图片标题",                  // 可选，默认用文件名
-       "category": "yuanshen",               // 可选，默认“未分类”，分类按钮由此自动生成
-       "description": "描述文字",            // 可选
-       "tags": ["标签1", "标签2"]            // 可选，参与搜索
+       "file": "images/大图集1/角色1/001.jpg",  // 必填，相对本页面的路径
+       "title": "图片标题",                     // 可选，默认用文件名
+       "category": "大图集1",                   // 可选，一级分类（大图集），第一行按钮
+       "subcategory": "角色1",                  // 可选，二级分类（角色），第二行筛选
+       "description": "描述文字",               // 可选
+       "tags": ["标签1", "标签2"]               // 可选，参与搜索
      }
+
+   两级分类的交互：
+     · 第一行永远显示「全部 + 各个大图集」
+     · 选中某个大图集后，第二行出现该大图集下的小类别
+     · 选中「全部」时隐藏第二行
    ========================================================= */
 
 (function () {
@@ -20,6 +26,7 @@
     var PAGE_SIZE = 12;                 // 每页显示张数（4 列 × 3 行）
     var MANIFEST_URL = 'images.json';   // 图片清单地址
     var DEFAULT_CATEGORY = '未分类';
+    var NO_SUBCATEGORY = '未分类';      // 图片直接放在大图集根目录时的二级分类名
     var ALL_CATEGORY = '全部';
     var STORAGE_KEY = 'image-library-dark';
 
@@ -28,6 +35,7 @@
     var el = {
         gallery: document.getElementById('gallery'),
         categorySection: document.getElementById('categorySection'),
+        subcategorySection: document.getElementById('subcategorySection'),
         searchInput: document.getElementById('searchInput'),
         resultCount: document.getElementById('resultCount'),
         emptyMessage: document.getElementById('emptyMessage'),
@@ -50,12 +58,13 @@
     /* ---------------- 状态 ---------------- */
 
     var state = {
-        images: [],       // 全部图片
-        filtered: [],     // 当前筛选结果
-        category: ALL_CATEGORY,
+        images: [],            // 全部图片
+        filtered: [],          // 当前筛选结果
+        category: ALL_CATEGORY,      // 一级：大图集
+        subcategory: ALL_CATEGORY,   // 二级：角色 / 小类别
         query: '',
         page: 1,
-        modalIndex: -1    // 灯箱当前图片在 filtered 中的下标
+        modalIndex: -1         // 灯箱当前图片在 filtered 中的下标
     };
 
     /* ---------------- 工具 ---------------- */
@@ -90,12 +99,14 @@
         }
 
         var category = raw.category || raw.folder || raw.album || DEFAULT_CATEGORY;
+        var subcategory = raw.subcategory || raw.sub || raw.group || '';
 
         return {
             src: String(file),
             title: String(raw.title || raw.name || baseName(file)),
             description: String(raw.description || raw.desc || ''),
             category: String(category),
+            subcategory: String(subcategory),
             tags: toTagArray(raw.tags)
         };
     }
@@ -144,8 +155,31 @@
         }
     }
 
-    /* ---------------- 分类按钮 ---------------- */
+    /* ---------------- 分类按钮（两级） ---------------- */
 
+    // 按出现数量排序：图片多的排前面，同数量按中文拼音
+    function sortByCount(counts) {
+        return Object.keys(counts).sort(function (a, b) {
+            if (counts[b] !== counts[a]) {
+                return counts[b] - counts[a];
+            }
+            return a.localeCompare(b, 'zh');
+        });
+    }
+
+    function renderChips(container, items, activeName, onPick) {
+        container.innerHTML = '';
+        items.forEach(function (item) {
+            var btn = document.createElement('button');
+            btn.className = 'category-btn' + (item.name === activeName ? ' active' : '');
+            btn.dataset.category = item.name;
+            btn.textContent = item.name + ' (' + item.count + ')';
+            btn.addEventListener('click', function () { onPick(item.name); });
+            container.appendChild(btn);
+        });
+    }
+
+    // 一级：全部 + 各个大图集
     function buildCategories() {
         if (!el.categorySection) {
             return;
@@ -156,40 +190,78 @@
             counts[img.category] = (counts[img.category] || 0) + 1;
         });
 
-        var names = Object.keys(counts).sort(function (a, b) {
-            if (counts[b] !== counts[a]) {
-                return counts[b] - counts[a];       // 图片多的分类排前面
-            }
-            return a.localeCompare(b, 'zh');
-        });
-
-        el.categorySection.innerHTML = '';
-
-        if (names.length === 0) {
+        if (state.images.length === 0) {
+            el.categorySection.innerHTML = '';
+            buildSubcategories();
             return;
         }
 
         var items = [{ name: ALL_CATEGORY, count: state.images.length }];
+        sortByCount(counts).forEach(function (name) {
+            items.push({ name: name, count: counts[name] });
+        });
+
+        renderChips(el.categorySection, items, state.category, function (name) {
+            state.category = name;
+            state.subcategory = ALL_CATEGORY;   // 换大图集时重置二级筛选
+            state.page = 1;
+            buildCategories();                  // 重新渲染两级高亮
+            render();
+        });
+
+        buildSubcategories();
+    }
+
+    // 二级：只在选中具体大图集时显示该大图集下的小类别
+    function buildSubcategories() {
+        if (!el.subcategorySection) {
+            return;
+        }
+
+        function hide() {
+            el.subcategorySection.style.display = 'none';
+            el.subcategorySection.innerHTML = '';
+            state.subcategory = ALL_CATEGORY;
+        }
+
+        if (state.category === ALL_CATEGORY) {
+            hide();
+            return;
+        }
+
+        var counts = {};
+        state.images.forEach(function (img) {
+            if (img.category !== state.category) {
+                return;
+            }
+            var key = img.subcategory || NO_SUBCATEGORY;
+            counts[key] = (counts[key] || 0) + 1;
+        });
+
+        var names = sortByCount(counts);
+
+        // 该大图集只有一种小类别（或没有子文件夹）时，这一行没有意义
+        if (names.length < 2) {
+            hide();
+            return;
+        }
+
+        var total = 0;
+        names.forEach(function (n) { total += counts[n]; });
+
+        var items = [{ name: ALL_CATEGORY, count: total }];
         names.forEach(function (name) {
             items.push({ name: name, count: counts[name] });
         });
 
-        items.forEach(function (item) {
-            var btn = document.createElement('button');
-            btn.className = 'category-btn' + (item.name === state.category ? ' active' : '');
-            btn.dataset.category = item.name;
-            btn.textContent = item.name + ' (' + item.count + ')';
-            btn.addEventListener('click', function () {
-                state.category = item.name;
-                state.page = 1;
-                Array.prototype.forEach.call(
-                    el.categorySection.querySelectorAll('.category-btn'),
-                    function (b) { b.classList.toggle('active', b === btn); }
-                );
-                render();
-            });
-            el.categorySection.appendChild(btn);
+        renderChips(el.subcategorySection, items, state.subcategory, function (name) {
+            state.subcategory = name;
+            state.page = 1;
+            buildSubcategories();
+            render();
         });
+
+        el.subcategorySection.style.display = '';
     }
 
     /* ---------------- 筛选 ---------------- */
@@ -201,10 +273,16 @@
             if (state.category !== ALL_CATEGORY && img.category !== state.category) {
                 return false;
             }
+            if (state.subcategory !== ALL_CATEGORY) {
+                var sub = img.subcategory || NO_SUBCATEGORY;
+                if (sub !== state.subcategory) {
+                    return false;
+                }
+            }
             if (!q) {
                 return true;
             }
-            var haystack = [img.title, img.category, img.description, img.src]
+            var haystack = [img.title, img.category, img.subcategory, img.description, img.src]
                 .concat(img.tags)
                 .join(' ')
                 .toLowerCase();
@@ -253,7 +331,9 @@
 
         var category = document.createElement('div');
         category.className = 'image-category';
-        category.textContent = img.category;
+        category.textContent = img.subcategory
+            ? img.category + ' / ' + img.subcategory
+            : img.category;
 
         info.appendChild(title);
         info.appendChild(category);
@@ -318,7 +398,7 @@
                 el.emptyMessage.querySelector('.empty-icon').textContent = '🖼️';
                 el.emptyTitle.textContent = '图库还是空的';
                 el.emptyText.innerHTML =
-                    '把图片放进 <code>images/</code> 目录（可以按分类建子文件夹），' +
+                    '按 <code>images/大图集/角色/</code> 的层级放图片，' +
                     '然后双击 <code>tools\\update-gallery.cmd</code> 生成清单即可。';
             } else {
                 el.emptyMessage.querySelector('.empty-icon').textContent = '🔍';
@@ -354,6 +434,9 @@
             parts.push(img.description);
         }
         parts.push('分类：' + img.category);
+        if (img.subcategory) {
+            parts.push('角色/小类：' + img.subcategory);
+        }
         if (img.tags.length) {
             parts.push('标签：' + img.tags.join('、'));
         }
@@ -486,6 +569,9 @@
         el.resultCount.textContent = '加载失败';
         el.resultCount.classList.add('error');
         el.pagination.style.display = 'none';
+        if (el.subcategorySection) {
+            el.subcategorySection.style.display = 'none';
+        }
     }
 
     function init() {

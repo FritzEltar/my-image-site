@@ -1,8 +1,17 @@
-把图片放进这个目录，然后运行 tools\update-gallery.cmd 重新生成 images.json。
+把图片放进这个目录，然后双击 tools\update-gallery.cmd 重新生成 images.json。
 
-目录结构就是分类结构：
-    images/yuanshen/001.jpg   -> 分类 yuanshen
-    images/动物/猫/001.jpg     -> 分类 动物/猫
-    images/001.jpg            -> 分类 未分类
+目录层级 = 分类层级（两级）：
+    images/大图集1/角色1/001.jpg  -> 一级「大图集1」 二级「角色1」
+    images/大图集1/002.jpg        -> 一级「大图集1」，无二级
+    images/001.jpg               -> 一级「未分类」，无二级
+
+    一级 = 大图集，显示成第一行分类按钮
+    二级 = 角色 / 小类别，选中大图集后才出现第二行筛选
+
+三级以上会合并进二级，例如：
+    images/大图集1/角色1/服装/a.jpg -> 一级「大图集1」 二级「角色1/服装」
+
+文件夹名随便改，改完重跑一次脚本即可。
 
 支持的格式：jpg / jpeg / png / gif / webp / avif / bmp / svg
+（PureRef 的 .pur 文件不是图片，会被忽略）

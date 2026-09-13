@@ -13,10 +13,10 @@
 my-image-site/
 ├── index.html                     页面结构
 ├── style.css                      样式（含深色模式与响应式）
-├── script.js                      图库逻辑（渲染 / 搜索 / 分类 / 分页 / 灯箱）
+├── script.js                      图库逻辑（渲染 / 搜索 / 两级分类 / 分页 / 灯箱）
 ├── images.json                    图片清单 —— 由脚本自动生成，不要手改
 ├── .nojekyll                      告诉 GitHub Pages 不要跑 Jekyll
-├── images/                        图片放这里，子目录名 = 分类名
+├── images/                        图片放这里，目录层级 = 分类层级
 │   ├── README.txt
 │   └── meta.json                  （可选）人工标题 / 标签，需自己创建
 └── tools/
@@ -28,18 +28,43 @@ my-image-site/
 
 ---
 
+## 分类逻辑（两级）
+
+```
+images/
+├── 大图集1/          ← 一级分类：显示成第一行按钮
+│   ├── 角色1/        ← 二级分类：选中大图集后，显示成第二行筛选
+│   │   ├── 001.jpg
+│   │   └── 002.jpg
+│   └── 角色2/
+└── 大图集2/
+    ├── 角色1/
+    └── 角色2/
+```
+
+- **第一行**永远显示 `全部 + 各个大图集`，右边带图片数量。
+- 点某个大图集后，**第二行**才出现，显示该大图集下的小类别。
+- 点最左边的「全部」回到所有大图集，第二行收起。
+- 某个大图集下只有一种小类别时，第二行自动隐藏（留着没有意义）。
+- 搜索会**同时匹配**一级分类、二级分类、标题、标签和文件名。
+
+三级及以上也可以，第三层会合并进二级显示，例如
+`images/大图集1/角色1/服装/a.jpg` → 一级「大图集1」、二级「角色1/服装」。
+
+---
+
 ## 添加图片
 
-1. 把图片放进 `images/` 下的分类文件夹，例如：
+1. 按上面的层级把图片放进 `images/`，例如：
 
    ```
-   images/yuanshen/001.jpg
-   images/婚戒/ring-01.png
-   images/动物/猫/cat.jpg
+   images/大图集1/角色1/001.jpg
+   images/大图集1/角色2/002.png
+   images/大图集2/角色1/003.webp
    ```
 
-   文件夹名就是网站上的分类按钮，多级目录会显示成 `动物/猫`。
-   直接丢在 `images/` 根目录的图片归入「未分类」。
+   文件夹名就是网站上显示的分类名，**随便改，改完重跑一次脚本即可**。
+   直接丢在 `images/` 根目录的图片归入一级「未分类」。
 
 2. 双击 `tools\update-gallery.cmd`（或在仓库目录运行
    `powershell -File tools\generate-manifest.ps1`）重新生成 `images.json`。
@@ -53,19 +78,20 @@ my-image-site/
 
 ```json
 {
-  "yuanshen/001.jpg": {
+  "大图集1/角色1/001.jpg": {
     "title": "雷电将军 立绘",
     "description": "绘画参考用",
     "tags": ["原神", "人物", "参考"]
   },
-  "婚戒/ring-01.png": {
-    "title": "素圈对戒",
-    "category": "婚戒"
+  "大图集2/角色1/屏幕截图(37).png": {
+    "title": "Minecraft 服务器截图",
+    "subcategory": "游戏场景"
   }
 }
 ```
 
-键是相对 `images/` 的路径。`title`、`description`、`tags`、`category` 都是可选的。
+键是相对 `images/` 的路径。`title`、`description`、`tags`、`category`、
+`subcategory` 都是可选的——不写就用文件夹名和文件名。
 改完重新运行生成脚本即可，标签也参与搜索。
 
 ---
@@ -148,9 +174,10 @@ git push
 
 ## 工作原理
 
-- `index.html` 只提供骨架，图片区和分类按钮都由 `script.js` 动态生成。
-- 页面加载时 `fetch('images.json')` 拿到清单，按分类聚合成分类按钮，
-  再按「分类 + 关键词」过滤出结果集，最后做前端分页（每页 12 张）。
+- `index.html` 只提供骨架，两级分类按钮和图片网格都由 `script.js` 动态生成。
+- 页面加载时 `fetch('images.json')` 拿到清单，按 `category` 聚合成第一行按钮；
+  选中某个大图集后，再按 `subcategory` 聚合出第二行筛选。
+- 过滤条件 = 一级分类 + 二级分类 + 关键词，最后做前端分页（每页 12 张）。
 - 图片用 `loading="lazy"` 懒加载，滚动到才请求。
 - 深色模式存 `localStorage`，首次访问跟随系统 `prefers-color-scheme`。
 - 灯箱支持 `Esc` 关闭、`←` `→` 切换上一张 / 下一张、点遮罩关闭。

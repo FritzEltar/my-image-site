@@ -814,23 +814,33 @@ code {
 
 
 /* =========================
-   页脚致谢标记
+   页脚：Powered by ... — 🐋 Built with ...
 ========================= */
 
-.credit {
+.footer-meta {
     display: flex;
 
     align-items: center;
 
     justify-content: center;
 
-    gap: 7px;
+    flex-wrap: wrap;
 
-    margin-top: 18px !important;
+    gap: 9px;
+}
 
-    padding-top: 16px;
+.footer-sep {
+    color: #ccc;
 
-    border-top: 1px dashed #ddd;
+    user-select: none;
+}
+
+.credit {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
 
     font-size: 12px;
 
@@ -840,9 +850,9 @@ code {
 }
 
 .credit-mark {
-    width: 26px;
+    width: 19px;
 
-    height: 20px;
+    height: 14px;
 
     flex: none;
 
@@ -869,8 +879,8 @@ code {
     color: #4d6bfe;
 }
 
-body.dark .credit {
-    border-color: #333;
+body.dark .footer-sep {
+    color: #444;
 }
 
 body.dark .credit-mark {

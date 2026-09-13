@@ -247,10 +247,19 @@ Adelle / Roboto Slab / DejaVu Serif，所以英文落在 **Georgia** 上 ——
 
 ## 页脚致谢
 
-页脚最后一行是本站的搭建者标记 —— 一条鲸鱼（DeepSeek 的标志）
-加一句 `Built with DeepSeek`，鼠标悬停会变成 DeepSeek 的品牌蓝
-（`#4d6bfe`）。它是内联 SVG（`index.html` 里 `.credit` 那一段），
-不额外请求文件，深色 / 浅色模式下颜色都已适配。
+页脚第二行是本站的搭建者标记，和 "Powered by GitHub Pages" **并排在同一行**，
+中间用一道横杠隔开，标记在右边：
+
+```
+Powered by GitHub Pages  —  🐋 Built with DeepSeek
+```
+
+标记是一条鲸鱼（DeepSeek 的标志）加一句 `Built with DeepSeek`。平时是低调的
+暖灰，鼠标悬停时鲸鱼和链接会变成 DeepSeek 的品牌蓝 `#4d6bfe`。
+
+它是内联 SVG（`index.html` 里 `.credit` 那一段），不额外请求文件；
+深色 / 浅色模式的配色都单独适配过。不想要就删掉
+`index.html` 页脚里的 `.credit` 和 `.footer-sep` 两段。
 
 ---
 

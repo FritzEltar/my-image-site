@@ -1,0 +1,11 @@
+# 系统与编辑器杂项
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+
+# PureRef 工程文件不是网页图片，不要提交
+*.pur
+
+# 本地预览脚本产生的临时文件
+.preview/

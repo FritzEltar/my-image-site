@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="我的个人图片素材库">
+
+    <title>My Image Library</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- 顶部导航 -->
+    <header class="header">
+
+        <div class="header-inner">
+
+            <a href="index.html" class="logo">
+                My Image Library
+            </a>
+
+            <nav>
+                <button id="darkModeBtn"
+                        class="dark-mode-btn"
+                        title="切换深色模式">
+                    🌙
+                </button>
+            </nav>
+
+        </div>
+
+    </header>
+
+
+    <!-- 主内容 -->
+    <main class="container">
+
+        <!-- 标题 -->
+        <section class="hero">
+
+            <h1>我的图片库</h1>
+
+            <p>
+                一个简单的个人图片素材托管网站
+            </p>
+
+        </section>
+
+
+        <!-- 搜索 -->
+        <section class="search-section">
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="搜索图片名称、标签..."
+                autocomplete="off"
+            >
+
+        </section>
+
+
+        <!-- 分类（内容由 script.js 依据 images.json 自动生成） -->
+        <section
+            id="categorySection"
+            class="category-section">
+        </section>
+
+
+        <!-- 图片数量 -->
+        <div class="result-info">
+
+            <span id="resultCount">
+                正在加载...
+            </span>
+
+        </div>
+
+
+        <!-- 图片区域 -->
+        <section
+            id="gallery"
+            class="gallery">
+        </section>
+
+
+        <!-- 没有搜索结果 / 图库为空 -->
+        <section
+            id="emptyMessage"
+            class="empty-message"
+            style="display:none;">
+
+            <div class="empty-icon">
+                🔍
+            </div>
+
+            <h2 id="emptyTitle">
+                没有找到图片
+            </h2>
+
+            <p id="emptyText">
+                尝试搜索其他关键词
+            </p>
+
+        </section>
+
+
+        <!-- 分页 -->
+        <section
+            id="pagination"
+            class="pagination"
+            style="display:none;">
+
+            <button
+                id="prevBtn"
+                class="page-btn">
+                ← 上一页
+            </button>
+
+            <span id="pageInfo">
+                第 1 页
+            </span>
+
+            <button
+                id="nextBtn"
+                class="page-btn">
+                下一页 →
+            </button>
+
+        </section>
+
+    </main>
+
+
+    <!-- 图片查看器 -->
+    <div
+        id="imageModal"
+        class="modal">
+
+        <div class="modal-content">
+
+            <button
+                id="closeModal"
+                class="close-btn">
+                ×
+            </button>
+
+            <img
+                id="modalImage"
+                src=""
+                alt=""
+            >
+
+            <div class="modal-info">
+
+                <h2 id="modalTitle">
+                    图片名称
+                </h2>
+
+                <p id="modalDescription">
+                </p>
+
+                <div class="modal-buttons">
+
+                    <button
+                        id="copyUrlBtn"
+                        class="modal-btn">
+                        🔗 复制图片 URL
+                    </button>
+
+                    <a
+                        id="downloadBtn"
+                        class="modal-btn"
+                        href="#"
+                        download>
+                        ⬇️ 下载图片
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- 页脚 -->
+    <footer class="footer">
+
+        <p>
+            © 2026 My Image Library
+        </p>
+
+        <p>
+            Powered by GitHub Pages
+        </p>
+
+    </footer>
+
+
+    <noscript>
+        <p style="text-align:center;padding:20px;">
+            这个图库需要开启 JavaScript 才能显示图片。
+        </p>
+    </noscript>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
